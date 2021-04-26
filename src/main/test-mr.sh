@@ -16,14 +16,14 @@ cd mr-tmp || exit 1
 rm -f mr-*
 
 # make sure software is freshly built.
-(cd ../../mrapps && go build $RACE -buildmode=plugin wc.go) || exit 1
-(cd ../../mrapps && go build $RACE -buildmode=plugin indexer.go) || exit 1
-(cd ../../mrapps && go build $RACE -buildmode=plugin mtiming.go) || exit 1
-(cd ../../mrapps && go build $RACE -buildmode=plugin rtiming.go) || exit 1
-(cd ../../mrapps && go build $RACE -buildmode=plugin jobcount.go) || exit 1
-(cd ../../mrapps && go build $RACE -buildmode=plugin early_exit.go) || exit 1
-(cd ../../mrapps && go build $RACE -buildmode=plugin crash.go) || exit 1
-(cd ../../mrapps && go build $RACE -buildmode=plugin nocrash.go) || exit 1
+(cd ../../mrapps && go build $RACE -buildmode=plugin wc/wc.go) || exit 1
+(cd ../../mrapps && go build $RACE -buildmode=plugin indexer/indexer.go) || exit 1
+(cd ../../mrapps && go build $RACE -buildmode=plugin mtiming/mtiming.go) || exit 1
+(cd ../../mrapps && go build $RACE -buildmode=plugin rtiming/rtiming.go) || exit 1
+(cd ../../mrapps && go build $RACE -buildmode=plugin jobcount/jobcount.go) || exit 1
+(cd ../../mrapps && go build $RACE -buildmode=plugin early_exit/early_exit.go) || exit 1
+(cd ../../mrapps && go build $RACE -buildmode=plugin crash/crash.go) || exit 1
+(cd ../../mrapps && go build $RACE -buildmode=plugin nocrash/nocrash.go) || exit 1
 (cd .. && go build $RACE mrcoordinator.go) || exit 1
 (cd .. && go build $RACE mrworker.go) || exit 1
 (cd .. && go build $RACE mrsequential.go) || exit 1
@@ -110,7 +110,7 @@ sleep 1
 timeout -k 2s 180s ../mrworker ../../mrapps/mtiming.so &
 timeout -k 2s 180s ../mrworker ../../mrapps/mtiming.so
 
-NT=`cat mr-out* | grep '^times-' | wc -l | sed 's/ //g'`
+NT=$(cat mr-out* | grep -c '^times-' | sed 's/ //g')
 if [ "$NT" != "2" ]
 then
   echo '---' saw "$NT" workers rather than 2
@@ -140,7 +140,7 @@ sleep 1
 timeout -k 2s 180s ../mrworker ../../mrapps/rtiming.so &
 timeout -k 2s 180s ../mrworker ../../mrapps/rtiming.so
 
-NT=`cat mr-out* | grep '^[a-z] 2' | wc -l | sed 's/ //g'`
+NT=$(cat mr-out* | grep -c '^[a-z] 2' | sed 's/ //g')
 if [ "$NT" -lt "2" ]
 then
   echo '---' too few parallel reduces.
@@ -165,7 +165,7 @@ timeout -k 2s 180s ../mrworker ../../mrapps/jobcount.so
 timeout -k 2s 180s ../mrworker ../../mrapps/jobcount.so &
 timeout -k 2s 180s ../mrworker ../../mrapps/jobcount.so
 
-NT=`cat mr-out* | awk '{print $2}'`
+NT=$(cat mr-out* | awk '{print $2}')
 if [ "$NT" -ne "8" ]
 then
   echo '---' map jobs ran incorrect number of times "($NT != 8)"
@@ -235,21 +235,21 @@ sleep 1
 timeout -k 2s 180s ../mrworker ../../mrapps/crash.so &
 
 # mimic rpc.go's coordinatorSock()
-SOCKNAME=/var/tmp/824-mr-`id -u`
+SOCKNAME=/var/tmp/824-mr-$(id -u)
 
-( while [ -e $SOCKNAME -a ! -f mr-done ]
+( while [ -e "$SOCKNAME" ] && [ ! -f mr-done ]
   do
     timeout -k 2s 180s ../mrworker ../../mrapps/crash.so
     sleep 1
   done ) &
 
-( while [ -e $SOCKNAME -a ! -f mr-done ]
+( while [ -e "$SOCKNAME" ] && [ ! -f mr-done ]
   do
     timeout -k 2s 180s ../mrworker ../../mrapps/crash.so
     sleep 1
   done ) &
 
-while [ -e $SOCKNAME -a ! -f mr-done ]
+while [ -e "$SOCKNAME" ] && [ ! -f mr-done ]
 do
   timeout -k 2s 180s ../mrworker ../../mrapps/crash.so
   sleep 1
@@ -257,7 +257,7 @@ done
 
 wait
 
-rm $SOCKNAME
+rm "$SOCKNAME"
 sort mr-out* | grep . > mr-crash-all
 if cmp mr-crash-all mr-correct-crash.txt
 then
