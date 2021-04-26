@@ -20,7 +20,7 @@ import (
 //
 func Map(filename string, contents string) []mr.KeyValue {
 	kva := []mr.KeyValue{}
-	kva = append(kva, mr.KeyValue{filename, "1"})
+	kva = append(kva, mr.KeyValue{Key: filename, Value: "1"})
 	return kva
 }
 

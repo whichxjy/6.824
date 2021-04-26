@@ -73,16 +73,18 @@ func Map(filename string, contents string) []mr.KeyValue {
 
 	kva := []mr.KeyValue{}
 	kva = append(kva, mr.KeyValue{
-		fmt.Sprintf("times-%v", pid),
-		fmt.Sprintf("%.1f", ts)})
+		Key:   fmt.Sprintf("times-%v", pid),
+		Value: fmt.Sprintf("%.1f", ts),
+	})
 	kva = append(kva, mr.KeyValue{
-		fmt.Sprintf("parallel-%v", pid),
-		fmt.Sprintf("%d", n)})
+		Key:   fmt.Sprintf("parallel-%v", pid),
+		Value: fmt.Sprintf("%d", n),
+	})
 	return kva
 }
 
 func Reduce(key string, values []string) string {
-	//n := nparallel("reduce")
+	// n := nparallel("reduce")
 
 	// sort values to ensure deterministic output.
 	vv := make([]string, len(values))
