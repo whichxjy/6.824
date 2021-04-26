@@ -4,27 +4,45 @@
 # basic map-reduce test
 #
 
-# comment this to run the tests without the Go race detector.
 RACE=-race
+BUILD_PLUGIN=-buildmode=plugin
+
+WORK_DIR=$(cd "$(dirname "$0")" || exit; pwd)
+TEMP_DIR=$WORK_DIR/mr-tmp
+BIN_DIR=$TEMP_DIR/bin
+PLUGINS_DIR=$TEMP_DIR/plugins
+APPS_DIR=$TEMP_DIR/../../mrapps
 
 # run the test in a fresh sub-directory.
-rm -rf mr-tmp
-mkdir mr-tmp || exit 1
-cd mr-tmp || exit 1
-rm -f mr-*
+rm -rf "$TEMP_DIR"
+mkdir "$TEMP_DIR" || exit 1
+cd "$TEMP_DIR" || exit 1
 
-# make sure software is freshly built.
-(cd ../../mrapps && go build $RACE -buildmode=plugin wc/wc.go) || exit 1
-(cd ../../mrapps && go build $RACE -buildmode=plugin indexer/indexer.go) || exit 1
-(cd ../../mrapps && go build $RACE -buildmode=plugin mtiming/mtiming.go) || exit 1
-(cd ../../mrapps && go build $RACE -buildmode=plugin rtiming/rtiming.go) || exit 1
-(cd ../../mrapps && go build $RACE -buildmode=plugin jobcount/jobcount.go) || exit 1
-(cd ../../mrapps && go build $RACE -buildmode=plugin early_exit/early_exit.go) || exit 1
-(cd ../../mrapps && go build $RACE -buildmode=plugin crash/crash.go) || exit 1
-(cd ../../mrapps && go build $RACE -buildmode=plugin nocrash/nocrash.go) || exit 1
-(cd .. && go build $RACE mrcoordinator.go) || exit 1
-(cd .. && go build $RACE mrworker.go) || exit 1
-(cd .. && go build $RACE mrsequential.go) || exit 1
+SEQUENTIAL=$BIN_DIR/mrsequential
+COORDINATOR=$BIN_DIR/mrcoordinator
+WORKER=$BIN_DIR/worker
+
+(cd .. && go build $RACE -o "$SEQUENTIAL" mrsequential/mrsequential.go) || exit 1
+(cd .. && go build $RACE -o "$COORDINATOR" mrcoordinator/mrcoordinator.go) || exit 1
+(cd .. && go build $RACE -o "$WORKER" mrworker/mrworker.go) || exit 1
+
+WC=$PLUGINS_DIR/wc
+INDEXER=$PLUGINS_DIR/indexer
+MTIMING=$PLUGINS_DIR/mtiming
+RTIMING=$PLUGINS_DIR/rtiming
+JOBCOUNT=$PLUGINS_DIR/jobcount
+EARLY_EXIT=$PLUGINS_DIR/early_exit
+CRASH=$PLUGINS_DIR/crash
+NOCRASH=$PLUGINS_DIR/nocrash
+
+(cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$WC" wc/wc.go) || exit 1
+(cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$INDEXER" indexer/indexer.go) || exit 1
+(cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$MTIMING" mtiming/mtiming.go) || exit 1
+(cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$RTIMING" rtiming/rtiming.go) || exit 1
+(cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$JOBCOUNT" jobcount/jobcount.go) || exit 1
+(cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$EARLY_EXIT" early_exit/early_exit.go) || exit 1
+(cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$CRASH" crash/crash.go) || exit 1
+(cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$NOCRASH" nocrash/nocrash.go) || exit 1
 
 failed_any=0
 
@@ -32,22 +50,22 @@ failed_any=0
 # first word-count
 
 # generate the correct output
-../mrsequential ../../mrapps/wc.so ../pg*txt || exit 1
+$SEQUENTIAL "$WC" ../pg*txt || exit 1
 sort mr-out-0 > mr-correct-wc.txt
 rm -f mr-out*
 
 echo '***' Starting wc test.
 
-timeout -k 2s 180s ../mrcoordinator ../pg*txt &
+timeout -k 2s 180s "$COORDINATOR" ../pg*txt &
 pid=$!
 
 # give the coordinator time to create the sockets.
 sleep 1
 
 # start multiple workers.
-timeout -k 2s 180s ../mrworker ../../mrapps/wc.so &
-timeout -k 2s 180s ../mrworker ../../mrapps/wc.so &
-timeout -k 2s 180s ../mrworker ../../mrapps/wc.so &
+timeout -k 2s 180s "$WORKER" "$WC" &
+timeout -k 2s 180s "$WORKER" "$WC" &
+timeout -k 2s 180s "$WORKER" "$WC" &
 
 # wait for the coordinator to exit.
 wait $pid
@@ -72,18 +90,18 @@ wait
 rm -f mr-*
 
 # generate the correct output
-../mrsequential ../../mrapps/indexer.so ../pg*txt || exit 1
+$SEQUENTIAL ../../mrapps/indexer.so ../pg*txt || exit 1
 sort mr-out-0 > mr-correct-indexer.txt
 rm -f mr-out*
 
 echo '***' Starting indexer test.
 
-timeout -k 2s 180s ../mrcoordinator ../pg*txt &
+timeout -k 2s 180s "$COORDINATOR" ../pg*txt &
 sleep 1
 
 # start multiple workers
-timeout -k 2s 180s ../mrworker ../../mrapps/indexer.so &
-timeout -k 2s 180s ../mrworker ../../mrapps/indexer.so
+timeout -k 2s 180s "$WORKER" ../../mrapps/indexer.so &
+timeout -k 2s 180s "$WORKER" ../../mrapps/indexer.so
 
 sort mr-out* | grep . > mr-indexer-all
 if cmp mr-indexer-all mr-correct-indexer.txt
@@ -102,11 +120,11 @@ echo '***' Starting map parallelism test.
 
 rm -f mr-*
 
-timeout -k 2s 180s ../mrcoordinator ../pg*txt &
+timeout -k 2s 180s "$COORDINATOR" ../pg*txt &
 sleep 1
 
-timeout -k 2s 180s ../mrworker ../../mrapps/mtiming.so &
-timeout -k 2s 180s ../mrworker ../../mrapps/mtiming.so
+timeout -k 2s 180s "$WORKER" ../../mrapps/mtiming.so &
+timeout -k 2s 180s "$WORKER" ../../mrapps/mtiming.so
 
 NT=$(cat mr-out* | grep -c '^times-' | sed 's/ //g')
 if [ "$NT" != "2" ]
@@ -132,11 +150,11 @@ echo '***' Starting reduce parallelism test.
 
 rm -f mr-*
 
-timeout -k 2s 180s ../mrcoordinator ../pg*txt &
+timeout -k 2s 180s "$COORDINATOR" ../pg*txt &
 sleep 1
 
-timeout -k 2s 180s ../mrworker ../../mrapps/rtiming.so &
-timeout -k 2s 180s ../mrworker ../../mrapps/rtiming.so
+timeout -k 2s 180s "$WORKER" ../../mrapps/rtiming.so &
+timeout -k 2s 180s "$WORKER" ../../mrapps/rtiming.so
 
 NT=$(cat mr-out* | grep -c '^[a-z] 2' | sed 's/ //g')
 if [ "$NT" -lt "2" ]
@@ -155,13 +173,13 @@ echo '***' Starting job count test.
 
 rm -f mr-*
 
-timeout -k 2s 180s ../mrcoordinator ../pg*txt &
+timeout -k 2s 180s "$COORDINATOR" ../pg*txt &
 sleep 1
 
-timeout -k 2s 180s ../mrworker ../../mrapps/jobcount.so &
-timeout -k 2s 180s ../mrworker ../../mrapps/jobcount.so
-timeout -k 2s 180s ../mrworker ../../mrapps/jobcount.so &
-timeout -k 2s 180s ../mrworker ../../mrapps/jobcount.so
+timeout -k 2s 180s "$WORKER" ../../mrapps/jobcount.so &
+timeout -k 2s 180s "$WORKER" ../../mrapps/jobcount.so
+timeout -k 2s 180s "$WORKER" ../../mrapps/jobcount.so &
+timeout -k 2s 180s "$WORKER" ../../mrapps/jobcount.so
 
 NT=$(cat mr-out* | awk '{print $2}')
 if [ "$NT" -ne "8" ]
@@ -182,15 +200,15 @@ rm -f mr-*
 
 echo '***' Starting early exit test.
 
-timeout -k 2s 180s ../mrcoordinator ../pg*txt &
+timeout -k 2s 180s "$COORDINATOR" ../pg*txt &
 
 # give the coordinator time to create the sockets.
 sleep 1
 
 # start multiple workers.
-timeout -k 2s 180s ../mrworker ../../mrapps/early_exit.so &
-timeout -k 2s 180s ../mrworker ../../mrapps/early_exit.so &
-timeout -k 2s 180s ../mrworker ../../mrapps/early_exit.so &
+timeout -k 2s 180s "$WORKER" ../../mrapps/early_exit.so &
+timeout -k 2s 180s "$WORKER" ../../mrapps/early_exit.so &
+timeout -k 2s 180s "$WORKER" ../../mrapps/early_exit.so &
 
 # wait for any of the coord or workers to exit
 # `jobs` ensures that any completed old processes from other tests
@@ -221,35 +239,35 @@ rm -f mr-*
 echo '***' Starting crash test.
 
 # generate the correct output
-../mrsequential ../../mrapps/nocrash.so ../pg*txt || exit 1
+$SEQUENTIAL ../../mrapps/nocrash.so ../pg*txt || exit 1
 sort mr-out-0 > mr-correct-crash.txt
 rm -f mr-out*
 
 rm -f mr-done
-(timeout -k 2s 180s ../mrcoordinator ../pg*txt ; touch mr-done ) &
+(timeout -k 2s 180s "$COORDINATOR" ../pg*txt ; touch mr-done ) &
 sleep 1
 
 # start multiple workers
-timeout -k 2s 180s ../mrworker ../../mrapps/crash.so &
+timeout -k 2s 180s "$WORKER" ../../mrapps/crash.so &
 
 # mimic rpc.go's coordinatorSock()
 SOCKNAME=/var/tmp/824-mr-$(id -u)
 
 ( while [ -e "$SOCKNAME" ] && [ ! -f mr-done ]
   do
-    timeout -k 2s 180s ../mrworker ../../mrapps/crash.so
+    timeout -k 2s 180s "$WORKER" ../../mrapps/crash.so
     sleep 1
   done ) &
 
 ( while [ -e "$SOCKNAME" ] && [ ! -f mr-done ]
   do
-    timeout -k 2s 180s ../mrworker ../../mrapps/crash.so
+    timeout -k 2s 180s "$WORKER" ../../mrapps/crash.so
     sleep 1
   done ) &
 
 while [ -e "$SOCKNAME" ] && [ ! -f mr-done ]
 do
-  timeout -k 2s 180s ../mrworker ../../mrapps/crash.so
+  timeout -k 2s 180s "$WORKER" ../../mrapps/crash.so
   sleep 1
 done
 
