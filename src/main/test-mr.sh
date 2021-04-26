@@ -90,7 +90,7 @@ wait
 rm -f mr-*
 
 # generate the correct output
-$SEQUENTIAL ../../mrapps/indexer.so ../pg*txt || exit 1
+$SEQUENTIAL "$INDEXER" ../pg*txt || exit 1
 sort mr-out-0 > mr-correct-indexer.txt
 rm -f mr-out*
 
@@ -100,8 +100,8 @@ timeout -k 2s 180s "$COORDINATOR" ../pg*txt &
 sleep 1
 
 # start multiple workers
-timeout -k 2s 180s "$WORKER" ../../mrapps/indexer.so &
-timeout -k 2s 180s "$WORKER" ../../mrapps/indexer.so
+timeout -k 2s 180s "$WORKER" "$INDEXER" &
+timeout -k 2s 180s "$WORKER" "$INDEXER"
 
 sort mr-out* | grep . > mr-indexer-all
 if cmp mr-indexer-all mr-correct-indexer.txt
@@ -123,8 +123,8 @@ rm -f mr-*
 timeout -k 2s 180s "$COORDINATOR" ../pg*txt &
 sleep 1
 
-timeout -k 2s 180s "$WORKER" ../../mrapps/mtiming.so &
-timeout -k 2s 180s "$WORKER" ../../mrapps/mtiming.so
+timeout -k 2s 180s "$WORKER" "$MTIMING" &
+timeout -k 2s 180s "$WORKER" "$MTIMING"
 
 NT=$(cat mr-out* | grep -c '^times-' | sed 's/ //g')
 if [ "$NT" != "2" ]
@@ -153,8 +153,8 @@ rm -f mr-*
 timeout -k 2s 180s "$COORDINATOR" ../pg*txt &
 sleep 1
 
-timeout -k 2s 180s "$WORKER" ../../mrapps/rtiming.so &
-timeout -k 2s 180s "$WORKER" ../../mrapps/rtiming.so
+timeout -k 2s 180s "$WORKER" "$RTIMING" &
+timeout -k 2s 180s "$WORKER" "$RTIMING"
 
 NT=$(cat mr-out* | grep -c '^[a-z] 2' | sed 's/ //g')
 if [ "$NT" -lt "2" ]
@@ -176,10 +176,10 @@ rm -f mr-*
 timeout -k 2s 180s "$COORDINATOR" ../pg*txt &
 sleep 1
 
-timeout -k 2s 180s "$WORKER" ../../mrapps/jobcount.so &
-timeout -k 2s 180s "$WORKER" ../../mrapps/jobcount.so
-timeout -k 2s 180s "$WORKER" ../../mrapps/jobcount.so &
-timeout -k 2s 180s "$WORKER" ../../mrapps/jobcount.so
+timeout -k 2s 180s "$WORKER" "$JOBCOUNT" &
+timeout -k 2s 180s "$WORKER" "$JOBCOUNT"
+timeout -k 2s 180s "$WORKER" "$JOBCOUNT" &
+timeout -k 2s 180s "$WORKER" "$JOBCOUNT"
 
 NT=$(cat mr-out* | awk '{print $2}')
 if [ "$NT" -ne "8" ]
@@ -206,9 +206,9 @@ timeout -k 2s 180s "$COORDINATOR" ../pg*txt &
 sleep 1
 
 # start multiple workers.
-timeout -k 2s 180s "$WORKER" ../../mrapps/early_exit.so &
-timeout -k 2s 180s "$WORKER" ../../mrapps/early_exit.so &
-timeout -k 2s 180s "$WORKER" ../../mrapps/early_exit.so &
+timeout -k 2s 180s "$WORKER" "$EARLY_EXIT" &
+timeout -k 2s 180s "$WORKER" "$EARLY_EXIT" &
+timeout -k 2s 180s "$WORKER" "$EARLY_EXIT" &
 
 # wait for any of the coord or workers to exit
 # `jobs` ensures that any completed old processes from other tests
@@ -239,7 +239,7 @@ rm -f mr-*
 echo '***' Starting crash test.
 
 # generate the correct output
-$SEQUENTIAL ../../mrapps/nocrash.so ../pg*txt || exit 1
+$SEQUENTIAL "$NOCRASH" ../pg*txt || exit 1
 sort mr-out-0 > mr-correct-crash.txt
 rm -f mr-out*
 
@@ -248,26 +248,26 @@ rm -f mr-done
 sleep 1
 
 # start multiple workers
-timeout -k 2s 180s "$WORKER" ../../mrapps/crash.so &
+timeout -k 2s 180s "$WORKER" "$CRASH" &
 
 # mimic rpc.go's coordinatorSock()
 SOCKNAME=/var/tmp/824-mr-$(id -u)
 
 ( while [ -e "$SOCKNAME" ] && [ ! -f mr-done ]
   do
-    timeout -k 2s 180s "$WORKER" ../../mrapps/crash.so
+    timeout -k 2s 180s "$WORKER" "$CRASH"
     sleep 1
   done ) &
 
 ( while [ -e "$SOCKNAME" ] && [ ! -f mr-done ]
   do
-    timeout -k 2s 180s "$WORKER" ../../mrapps/crash.so
+    timeout -k 2s 180s "$WORKER" "$CRASH"
     sleep 1
   done ) &
 
 while [ -e "$SOCKNAME" ] && [ ! -f mr-done ]
 do
-  timeout -k 2s 180s "$WORKER" ../../mrapps/crash.so
+  timeout -k 2s 180s "$WORKER" "$CRASH"
   sleep 1
 done
 
