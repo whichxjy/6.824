@@ -20,7 +20,7 @@ type ReduceData = []string
 type Work struct {
 	Kind WorkKind
 	ID   int
-	data interface{}
+	Data interface{}
 }
 
 type RequestWorkArgs struct{}

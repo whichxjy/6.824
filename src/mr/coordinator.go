@@ -65,12 +65,17 @@ func (c *Coordinator) initStates(files []string, nReduce int) {
 }
 
 func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply) error {
+	// c.rwm.Lock()
+	// defer c.rwm.Unlock()
+
 	mw, areAllMapWorksCompleted := c.findNextIdleMapWork()
 	if mw != nil {
 		reply.Work = &Work{
 			Kind: MapKind,
 			ID:   mw.id,
+			Data: mw.data,
 		}
+
 		return nil
 	}
 

@@ -44,7 +44,7 @@ func CallRequestWork() {
 	work := reply.Work
 
 	if work != nil {
-		fmt.Printf("reply.Y %v\n", work.ID)
+		fmt.Printf("reply: \n%+v\n", fmt.Sprintf("%v", work.Data))
 	}
 }
 
