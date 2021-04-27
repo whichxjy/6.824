@@ -35,10 +35,12 @@ func nparallel(phase string) int {
 	if err != nil {
 		panic(err)
 	}
+
 	names, err := dd.Readdirnames(1000000)
 	if err != nil {
 		panic(err)
 	}
+
 	ret := 0
 	for _, name := range names {
 		var xpid int
@@ -80,6 +82,7 @@ func Map(filename string, contents string) []mr.KeyValue {
 		Key:   fmt.Sprintf("parallel-%v", pid),
 		Value: fmt.Sprintf("%d", n),
 	})
+
 	return kva
 }
 

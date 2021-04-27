@@ -37,13 +37,13 @@ CRASH=$PLUGINS_DIR/crash
 NOCRASH=$PLUGINS_DIR/nocrash
 
 (cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$WC" wc/wc.go) || exit 1
-(cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$INDEXER" indexer/indexer.go) || exit 1
-(cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$MTIMING" mtiming/mtiming.go) || exit 1
-(cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$RTIMING" rtiming/rtiming.go) || exit 1
-(cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$JOBCOUNT" jobcount/jobcount.go) || exit 1
-(cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$EARLY_EXIT" early_exit/early_exit.go) || exit 1
-(cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$CRASH" crash/crash.go) || exit 1
-(cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$NOCRASH" nocrash/nocrash.go) || exit 1
+# (cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$INDEXER" indexer/indexer.go) || exit 1
+# (cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$MTIMING" mtiming/mtiming.go) || exit 1
+# (cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$RTIMING" rtiming/rtiming.go) || exit 1
+# (cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$JOBCOUNT" jobcount/jobcount.go) || exit 1
+# (cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$EARLY_EXIT" early_exit/early_exit.go) || exit 1
+# (cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$CRASH" crash/crash.go) || exit 1
+# (cd "$APPS_DIR" && go build $RACE $BUILD_PLUGIN -o "$NOCRASH" nocrash/nocrash.go) || exit 1
 
 failed_any=0
 
@@ -70,6 +70,9 @@ timeout -k 2s 180s "$WORKER" "$WC" &
 
 # wait for the coordinator to exit.
 wait $pid
+
+# TODO: Remove this line
+exit
 
 # since workers are required to exit when a job is completely finished,
 # and not before, that means the job has finished.

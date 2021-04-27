@@ -63,7 +63,6 @@ func nparallel(phase string) int {
 }
 
 func Map(filename string, contents string) []mr.KeyValue {
-
 	kva := []mr.KeyValue{}
 	kva = append(kva, mr.KeyValue{Key: "a", Value: "1"})
 	kva = append(kva, mr.KeyValue{Key: "b", Value: "1"})

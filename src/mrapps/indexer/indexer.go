@@ -21,14 +21,18 @@ import (
 // key/value pairs, each represented by a mr.KeyValue.
 func Map(document string, value string) (res []mr.KeyValue) {
 	m := make(map[string]bool)
-	words := strings.FieldsFunc(value, func(x rune) bool { return !unicode.IsLetter(x) })
+	ff := func(x rune) bool { return !unicode.IsLetter(x) }
+	words := strings.FieldsFunc(value, ff)
+
 	for _, w := range words {
 		m[w] = true
 	}
+
 	for w := range m {
 		kv := mr.KeyValue{Key: w, Value: document}
 		res = append(res, kv)
 	}
+
 	return
 }
 
