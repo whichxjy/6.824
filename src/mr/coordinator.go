@@ -90,14 +90,26 @@ func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply
 	}
 
 	// Find a reduce work to do.
+	rw := c.findNextIdleReduceWork()
+	if rw != nil {
+		// Mark this map work as in-progress.
+		rw.state = WorkInProgress
 
-	reply.Work = &Work{
-		ID: 123,
+		// Push this reduce work to worker.
+		reply.Work = &Work{
+			Kind: ReduceKind,
+			ID:   rw.id,
+			Data: rw.data,
+		}
+		return nil
 	}
+
+	// No map work or reduce work to do.
+	reply.Work = nil
 	return nil
 }
 
-// Find next idle map work and check if all map works are completed.
+// Find the next idle map work and check if all map works are completed.
 func (c *Coordinator) findNextIdleMapWork() (*mapWork, bool) {
 	completedMapWorks := 0
 
@@ -114,6 +126,17 @@ func (c *Coordinator) findNextIdleMapWork() (*mapWork, bool) {
 	areAllMapWorksCompleted := completedMapWorks == len(c.mapWorks)
 
 	return nil, areAllMapWorksCompleted
+}
+
+// Find the next idle reduce work.
+func (c *Coordinator) findNextIdleReduceWork() *reduceWork {
+	for _, rw := range c.reduceWorks {
+		if rw.state == WorkIdle {
+			return &rw
+		}
+	}
+
+	return nil
 }
 
 // Listen RPCs.
