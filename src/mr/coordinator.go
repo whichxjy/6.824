@@ -65,24 +65,31 @@ func (c *Coordinator) initStates(files []string, nReduce int) {
 }
 
 func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply) error {
-	// c.rwm.Lock()
-	// defer c.rwm.Unlock()
+	c.rwm.Lock()
+	defer c.rwm.Unlock()
 
+	// Find a map work to do.
 	mw, areAllMapWorksCompleted := c.findNextIdleMapWork()
 	if mw != nil {
+		// Mark this map work as in-progress.
+		mw.state = WorkInProgress
+
+		// Push this map work to worker.
 		reply.Work = &Work{
 			Kind: MapKind,
 			ID:   mw.id,
 			Data: mw.data,
 		}
-
 		return nil
 	}
 
 	if !areAllMapWorksCompleted {
+		// No work to do until all map works are completed.
 		reply.Work = nil
 		return nil
 	}
+
+	// Find a reduce work to do.
 
 	reply.Work = &Work{
 		ID: 123,
@@ -92,9 +99,6 @@ func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply
 
 // Find next idle map work and check if all map works are completed.
 func (c *Coordinator) findNextIdleMapWork() (*mapWork, bool) {
-	c.rwm.RLock()
-	defer c.rwm.RUnlock()
-
 	completedMapWorks := 0
 
 	for _, mw := range c.mapWorks {
