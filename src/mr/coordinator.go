@@ -155,7 +155,6 @@ func (c *Coordinator) findNextIdleReduceWork() *reduceWork {
 			return &rw
 		}
 	}
-
 	return nil
 }
 
@@ -175,14 +174,19 @@ func (c *Coordinator) server() {
 	go http.Serve(l, nil)
 }
 
-//
 // main/mrcoordinator.go calls Done() periodically to find out
 // if the entire job has finished.
-//
 func (c *Coordinator) Done() bool {
-	ret := false
+	c.rwm.RLock()
+	defer c.rwm.RUnlock()
+	return c.areAllReduceWorksCompleted()
+}
 
-	// Your code here.
-
-	return ret
+func (c *Coordinator) areAllReduceWorksCompleted() bool {
+	for _, rw := range c.reduceWorks {
+		if rw.state != WorkCompleted {
+			return false
+		}
+	}
+	return true
 }
