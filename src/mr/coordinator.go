@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/rpc"
 	"os"
+	"sync"
 )
 
 type workState = int
@@ -17,34 +18,50 @@ const (
 )
 
 type mapWork struct {
-	id    uint
-	data  MapData
+	id    int
 	state workState
+	data  MapData
 }
 
 type reduceWork struct {
-	id    uint
-	data  ReduceData
+	id    int
 	state workState
+	data  ReduceData
 }
 
 type Coordinator struct {
 	// Your definitions here.
 	mapWorks    []mapWork
 	reduceWorks []reduceWork
+	rwm         sync.RWMutex
 }
 
-// Your code here -- RPC handlers for the worker to call.
-
-func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply) error {
-	reply.Work = &Work{
-		ID: 111,
-	}
-	return nil
+// nReduce is the number of reduce tasks to use.
+func MakeCoordinator(files []string, nReduce int) *Coordinator {
+	var c Coordinator
+	c.initStates(files, nReduce)
+	c.server()
+	return &c
 }
 
 func (c *Coordinator) initStates(files []string, nReduce int) {
+	c.mapWorks = make([]mapWork, len(files))
+	for i, file := range files {
+		c.mapWorks[i] = mapWork{
+			id:    i,
+			state: WorkIdle,
+			data:  file,
+		}
+	}
 
+	c.reduceWorks = make([]reduceWork, nReduce)
+	for i := 0; i < nReduce; i++ {
+		c.reduceWorks[i] = reduceWork{
+			id:    i,
+			state: WorkIdle,
+			data:  nil,
+		}
+	}
 }
 
 // Listen RPCs.
@@ -75,10 +92,11 @@ func (c *Coordinator) Done() bool {
 	return ret
 }
 
-// nReduce is the number of reduce tasks to use.
-func MakeCoordinator(files []string, nReduce int) *Coordinator {
-	var c Coordinator
-	c.initStates(files, nReduce)
-	c.server()
-	return &c
+// Your code here -- RPC handlers for the worker to call.
+
+func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply) error {
+	reply.Work = &Work{
+		ID: 123,
+	}
+	return nil
 }

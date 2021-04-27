@@ -19,7 +19,7 @@ type ReduceData = []string
 
 type Work struct {
 	Kind WorkKind
-	ID   uint
+	ID   int
 	data interface{}
 }
 
