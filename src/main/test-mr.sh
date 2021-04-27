@@ -8,6 +8,7 @@ RACE=-race
 BUILD_PLUGIN=-buildmode=plugin
 
 WORK_DIR=$(cd "$(dirname "$0")" || exit; pwd)
+INPUT_DIR=$WORK_DIR/input
 TEMP_DIR=$WORK_DIR/mr-tmp
 BIN_DIR=$TEMP_DIR/bin
 PLUGINS_DIR=$TEMP_DIR/plugins
@@ -50,13 +51,13 @@ failed_any=0
 # first word-count
 
 # generate the correct output
-$SEQUENTIAL "$WC" ../pg*txt || exit 1
+$SEQUENTIAL "$WC" "$INPUT_DIR"/* || exit 1
 sort mr-out-0 > mr-correct-wc.txt
 rm -f mr-out*
 
 echo '***' Starting wc test.
 
-timeout -k 2s 180s "$COORDINATOR" ../pg*txt &
+timeout -k 2s 180s "$COORDINATOR" "$INPUT_DIR"/* &
 pid=$!
 
 # give the coordinator time to create the sockets.
@@ -90,13 +91,13 @@ wait
 rm -f mr-*
 
 # generate the correct output
-$SEQUENTIAL "$INDEXER" ../pg*txt || exit 1
+$SEQUENTIAL "$INDEXER" "$INPUT_DIR"/* || exit 1
 sort mr-out-0 > mr-correct-indexer.txt
 rm -f mr-out*
 
 echo '***' Starting indexer test.
 
-timeout -k 2s 180s "$COORDINATOR" ../pg*txt &
+timeout -k 2s 180s "$COORDINATOR" "$INPUT_DIR"/* &
 sleep 1
 
 # start multiple workers
@@ -120,7 +121,7 @@ echo '***' Starting map parallelism test.
 
 rm -f mr-*
 
-timeout -k 2s 180s "$COORDINATOR" ../pg*txt &
+timeout -k 2s 180s "$COORDINATOR" "$INPUT_DIR"/* &
 sleep 1
 
 timeout -k 2s 180s "$WORKER" "$MTIMING" &
@@ -150,7 +151,7 @@ echo '***' Starting reduce parallelism test.
 
 rm -f mr-*
 
-timeout -k 2s 180s "$COORDINATOR" ../pg*txt &
+timeout -k 2s 180s "$COORDINATOR" "$INPUT_DIR"/* &
 sleep 1
 
 timeout -k 2s 180s "$WORKER" "$RTIMING" &
@@ -173,7 +174,7 @@ echo '***' Starting job count test.
 
 rm -f mr-*
 
-timeout -k 2s 180s "$COORDINATOR" ../pg*txt &
+timeout -k 2s 180s "$COORDINATOR" "$INPUT_DIR"/* &
 sleep 1
 
 timeout -k 2s 180s "$WORKER" "$JOBCOUNT" &
@@ -200,7 +201,7 @@ rm -f mr-*
 
 echo '***' Starting early exit test.
 
-timeout -k 2s 180s "$COORDINATOR" ../pg*txt &
+timeout -k 2s 180s "$COORDINATOR" "$INPUT_DIR"/* &
 
 # give the coordinator time to create the sockets.
 sleep 1
@@ -239,12 +240,12 @@ rm -f mr-*
 echo '***' Starting crash test.
 
 # generate the correct output
-$SEQUENTIAL "$NOCRASH" ../pg*txt || exit 1
+$SEQUENTIAL "$NOCRASH" "$INPUT_DIR"/* || exit 1
 sort mr-out-0 > mr-correct-crash.txt
 rm -f mr-out*
 
 rm -f mr-done
-(timeout -k 2s 180s "$COORDINATOR" ../pg*txt ; touch mr-done ) &
+(timeout -k 2s 180s "$COORDINATOR" "$INPUT_DIR"/* ; touch mr-done ) &
 sleep 1
 
 # start multiple workers
