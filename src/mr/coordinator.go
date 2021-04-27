@@ -30,7 +30,6 @@ type reduceWork struct {
 }
 
 type Coordinator struct {
-	// Your definitions here.
 	mapWorks    []mapWork
 	reduceWorks []reduceWork
 	rwm         sync.RWMutex

@@ -1,10 +1,10 @@
 package mr
 
 import (
-	"fmt"
 	"hash/fnv"
-	"log"
 	"net/rpc"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Map functions return a slice of KeyValue.
@@ -24,24 +24,24 @@ func ihash(key string) int {
 func Worker(mapf func(string, string) []KeyValue,
 	reducef func(string, []string) string) {
 
-	// Your worker implementation here.
-	CallRequestWork()
-}
-
-func CallRequestWork() {
-	args := RequestWorkArgs{}
-
-	reply := RequestWorkReply{}
-	call("Coordinator.RequestWork", &args, &reply)
-
-	work := reply.Work
-
-	if work != nil {
-		fmt.Printf("reply: \n%+v\n", fmt.Sprintf("%v", work.Data))
+	work, err := requestWork()
+	if err != nil {
+		return
 	}
+
+	log.Infof("[Worker] Get work: %+v", work)
 }
 
-func call(rpcname string, args interface{}, reply interface{}) bool {
+func requestWork() (*Work, error) {
+	args := RequestWorkArgs{}
+	reply := RequestWorkReply{}
+	if err := call("Coordinator.RequestWork", &args, &reply); err != nil {
+		return nil, err
+	}
+	return reply.Work, nil
+}
+
+func call(rpcname string, args interface{}, reply interface{}) error {
 	sockname := coordinatorSock()
 	c, err := rpc.DialHTTP("unix", sockname)
 	if err != nil {
@@ -49,11 +49,5 @@ func call(rpcname string, args interface{}, reply interface{}) bool {
 	}
 	defer c.Close()
 
-	err = c.Call(rpcname, args, reply)
-	if err == nil {
-		return true
-	}
-
-	fmt.Println(err)
-	return false
+	return c.Call(rpcname, args, reply)
 }
