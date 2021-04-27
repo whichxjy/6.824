@@ -64,6 +64,49 @@ func (c *Coordinator) initStates(files []string, nReduce int) {
 	}
 }
 
+func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply) error {
+	mw, areAllMapWorksCompleted := c.findNextIdleMapWork()
+	if mw != nil {
+		reply.Work = &Work{
+			Kind: MapKind,
+			ID:   mw.id,
+		}
+		return nil
+	}
+
+	if !areAllMapWorksCompleted {
+		reply.Work = nil
+		return nil
+	}
+
+	reply.Work = &Work{
+		ID: 123,
+	}
+	return nil
+}
+
+// Find next idle map work and check if all map works are completed.
+func (c *Coordinator) findNextIdleMapWork() (*mapWork, bool) {
+	c.rwm.RLock()
+	defer c.rwm.RUnlock()
+
+	completedMapWorks := 0
+
+	for _, mw := range c.mapWorks {
+		if mw.state == WorkIdle {
+			return &mw, false
+		}
+
+		if mw.state == WorkCompleted {
+			completedMapWorks += 1
+		}
+	}
+
+	areAllMapWorksCompleted := completedMapWorks == len(c.mapWorks)
+
+	return nil, areAllMapWorksCompleted
+}
+
 // Listen RPCs.
 func (c *Coordinator) server() {
 	rpc.Register(c)
@@ -90,13 +133,4 @@ func (c *Coordinator) Done() bool {
 	// Your code here.
 
 	return ret
-}
-
-// Your code here -- RPC handlers for the worker to call.
-
-func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply) error {
-	reply.Work = &Work{
-		ID: 123,
-	}
-	return nil
 }
