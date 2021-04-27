@@ -8,9 +8,30 @@ import (
 	"os"
 )
 
+type workState = int
+
+const (
+	WorkIdle = iota + 1
+	WorkInProgress
+	WorkCompleted
+)
+
+type mapWork struct {
+	id    uint
+	data  MapData
+	state workState
+}
+
+type reduceWork struct {
+	id    uint
+	data  ReduceData
+	state workState
+}
+
 type Coordinator struct {
 	// Your definitions here.
-
+	mapWorks    []mapWork
+	reduceWorks []reduceWork
 }
 
 // Your code here -- RPC handlers for the worker to call.
@@ -20,6 +41,10 @@ func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply
 		ID: 111,
 	}
 	return nil
+}
+
+func (c *Coordinator) initStates(files []string, nReduce int) {
+
 }
 
 // Listen RPCs.
@@ -50,16 +75,10 @@ func (c *Coordinator) Done() bool {
 	return ret
 }
 
-//
-// create a Coordinator.
-// main/mrcoordinator.go calls this function.
 // nReduce is the number of reduce tasks to use.
-//
 func MakeCoordinator(files []string, nReduce int) *Coordinator {
-	c := Coordinator{}
-
-	// Your code here.
-
+	var c Coordinator
+	c.initStates(files, nReduce)
 	c.server()
 	return &c
 }
