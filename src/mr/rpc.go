@@ -5,17 +5,17 @@ import (
 	"strconv"
 )
 
-// RequestWork
+// RPC: Request Work
 
 type WorkKind int
 
 const (
-	MapKind WorkKind = iota + 1
-	ReduceKind
+	KindMap WorkKind = iota + 1
+	KindReduce
 )
 
-type MapData = string
-type ReduceData = []string
+type DataMap = string
+type DataReduce = []string
 
 type Work struct {
 	Kind WorkKind
@@ -29,7 +29,22 @@ type RequestWorkReply struct {
 	Work *Work
 }
 
-// Add your RPC definitions here.
+// RPC: Send Work Result
+
+type WorkResult int
+
+const (
+	ResultOk WorkResult = iota + 1
+	ResultError
+)
+
+type SendWorkResultArgs struct {
+	Kind       WorkKind
+	ID         int
+	WorkResult WorkResult
+}
+
+type SendWorkResultReply struct{}
 
 // Cook up a unique-ish UNIX-domain socket name
 // in /var/tmp, for the coordinator.

@@ -20,13 +20,13 @@ const (
 type mapWork struct {
 	id    int
 	state workState
-	data  MapData
+	data  DataMap
 }
 
 type reduceWork struct {
 	id    int
 	state workState
-	data  ReduceData
+	data  DataReduce
 }
 
 type Coordinator struct {
@@ -76,9 +76,9 @@ func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply
 
 		// Push this map work to worker.
 		reply.Work = &Work{
-			Kind: MapKind,
+			Kind: KindMap,
 			ID:   mw.id,
-			Data: mw.data,
+			Data: DataMap(mw.data),
 		}
 		return nil
 	}
@@ -97,15 +97,35 @@ func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply
 
 		// Push this reduce work to worker.
 		reply.Work = &Work{
-			Kind: ReduceKind,
+			Kind: KindReduce,
 			ID:   rw.id,
-			Data: rw.data,
+			Data: DataReduce(rw.data),
 		}
 		return nil
 	}
 
 	// No map work or reduce work to do.
 	reply.Work = nil
+	return nil
+}
+
+func (c *Coordinator) SendWorkResult(args *SendWorkResultArgs, reply *SendWorkResultReply) error {
+	c.rwm.Lock()
+	defer c.rwm.Unlock()
+
+	var newState workState
+	if args.WorkResult == ResultOk {
+		newState = WorkCompleted
+	} else {
+		newState = WorkIdle
+	}
+
+	if args.Kind == KindMap {
+		c.mapWorks[args.ID].state = newState
+	} else {
+		c.reduceWorks[args.ID].state = newState
+	}
+
 	return nil
 }
 
