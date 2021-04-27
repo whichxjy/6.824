@@ -15,23 +15,18 @@ type Coordinator struct {
 
 // Your code here -- RPC handlers for the worker to call.
 
-//
-// an example RPC handler.
-//
-// the RPC argument and reply types are defined in rpc.go.
-//
-func (c *Coordinator) Example(args *ExampleArgs, reply *ExampleReply) error {
-	reply.Y = args.X + 1
+func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply) error {
+	reply.Work = &Work{
+		ID: 111,
+	}
 	return nil
 }
 
-//
-// start a thread that listens for RPCs from worker.go
-//
+// Listen RPCs.
 func (c *Coordinator) server() {
 	rpc.Register(c)
 	rpc.HandleHTTP()
-	// l, e := net.Listen("tcp", ":1234")
+
 	sockname := coordinatorSock()
 	os.Remove(sockname)
 

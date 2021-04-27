@@ -32,40 +32,23 @@ func Worker(mapf func(string, string) []KeyValue,
 	reducef func(string, []string) string) {
 
 	// Your worker implementation here.
-
-	// uncomment to send the Example RPC to the coordinator.
-	CallExample()
+	CallRequestWork()
 }
 
-//
-// example function to show how to make an RPC call to the coordinator.
-//
-// the RPC argument and reply types are defined in rpc.go.
-//
-func CallExample() {
-	// declare an argument structure.
-	args := ExampleArgs{}
+func CallRequestWork() {
+	args := RequestWorkArgs{}
 
-	// fill in the argument(s).
-	args.X = 99
+	reply := RequestWorkReply{}
+	call("Coordinator.RequestWork", &args, &reply)
 
-	// declare a reply structure.
-	reply := ExampleReply{}
+	work := reply.Work
 
-	// send the RPC request, wait for the reply.
-	call("Coordinator.Example", &args, &reply)
-
-	// reply.Y should be 100.
-	fmt.Printf("reply.Y %v\n", reply.Y)
+	if work != nil {
+		fmt.Printf("reply.Y %v\n", work.ID)
+	}
 }
 
-//
-// send an RPC request to the coordinator, wait for the response.
-// usually returns true.
-// returns false if something goes wrong.
-//
 func call(rpcname string, args interface{}, reply interface{}) bool {
-	// c, err := rpc.DialHTTP("tcp", "127.0.0.1"+":1234")
 	sockname := coordinatorSock()
 	c, err := rpc.DialHTTP("unix", sockname)
 	if err != nil {

@@ -1,27 +1,32 @@
 package mr
 
-//
-// RPC definitions.
-//
-// remember to capitalize all names.
-//
-
 import (
 	"os"
 	"strconv"
 )
 
-//
-// example to show how to declare the arguments
-// and reply for an RPC.
-//
+// RequestWork
 
-type ExampleArgs struct {
-	X int
+type WorkKind int
+
+const (
+	MapKind WorkKind = iota + 1
+	ReduceKind
+)
+
+type MapData = string
+type ReduceData = []string
+
+type Work struct {
+	Kind WorkKind
+	ID   uint
+	data interface{}
 }
 
-type ExampleReply struct {
-	Y int
+type RequestWorkArgs struct{}
+
+type RequestWorkReply struct {
+	Work *Work
 }
 
 // Add your RPC definitions here.
