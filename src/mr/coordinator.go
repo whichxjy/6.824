@@ -1,12 +1,13 @@
 package mr
 
 import (
-	"log"
 	"net"
 	"net/http"
 	"net/rpc"
 	"os"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type workState = int
@@ -74,6 +75,7 @@ func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply
 		mw.state = WorkInProgress
 
 		// Push this map work to worker.
+		log.Infof("[RequestWork] Assign map work %v", mw.id)
 		reply.Work = &Work{
 			Kind: KindMap,
 			ID:   mw.id,
@@ -95,6 +97,7 @@ func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply
 		rw.state = WorkInProgress
 
 		// Push this reduce work to worker.
+		log.Infof("[RequestWork] Assign reduce work %v", mw.id)
 		reply.Work = &Work{
 			Kind: KindReduce,
 			ID:   rw.id,
@@ -111,6 +114,8 @@ func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply
 func (c *Coordinator) SendWorkResult(args *SendWorkResultArgs, reply *SendWorkResultReply) error {
 	c.rwm.Lock()
 	defer c.rwm.Unlock()
+
+	log.Infof("[SendWorkResult] Get work result: %+v", args)
 
 	var newState workState
 	if args.WorkResult == ResultOk {
@@ -179,6 +184,7 @@ func (c *Coordinator) Done() bool {
 	c.rwm.RLock()
 	defer c.rwm.RUnlock()
 	return c.areAllReduceWorksCompleted()
+	// return true
 }
 
 func (c *Coordinator) areAllReduceWorksCompleted() bool {

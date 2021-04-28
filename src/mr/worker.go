@@ -3,6 +3,7 @@ package mr
 import (
 	"hash/fnv"
 	"net/rpc"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -23,13 +24,35 @@ func ihash(key string) int {
 
 func Worker(mapf func(string, string) []KeyValue,
 	reducef func(string, []string) string) {
+	for {
+		work, err := requestWork()
+		if err != nil {
+			log.Errorf("[Worker] Fail to get work: %+v", err)
+			return
+		}
+		log.Infof("[Worker] Get work: %+v", work)
 
-	work, err := requestWork()
-	if err != nil {
-		return
+		if work == nil {
+			// No work to do.
+			time.Sleep(time.Second)
+			continue
+		}
+
+		// Do to work.
+		var wr WorkResult
+		if err := doWork(*work); err != nil {
+			log.Errorf("[Worker] Fail to do work: %+v", err)
+			wr = ResultError
+		} else {
+			wr = ResultOk
+		}
+
+		// Send result to coordinator.
+		if err := sendWorkResult(work.Kind, work.ID, wr); err != nil {
+			log.Errorf("[Worker] Fail to send result: %+v", err)
+			return
+		}
 	}
-
-	log.Infof("[Worker] Get work: %+v", work)
 }
 
 func requestWork() (*Work, error) {
@@ -41,6 +64,15 @@ func requestWork() (*Work, error) {
 	return reply.Work, nil
 }
 
+func doWork(w Work) error {
+	time.Sleep(5 * time.Second)
+	return nil
+}
+
+func sendWorkResult(kind WorkKind, id int, wr WorkResult) error {
+	return nil
+}
+
 func call(rpcname string, args interface{}, reply interface{}) error {
 	sockname := coordinatorSock()
 	c, err := rpc.DialHTTP("unix", sockname)
@@ -48,6 +80,5 @@ func call(rpcname string, args interface{}, reply interface{}) error {
 		log.Fatal("dialing:", err)
 	}
 	defer c.Close()
-
 	return c.Call(rpcname, args, reply)
 }
