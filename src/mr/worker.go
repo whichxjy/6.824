@@ -1,6 +1,7 @@
 package mr
 
 import (
+	"errors"
 	"hash/fnv"
 	"net/rpc"
 	"time"
@@ -39,8 +40,10 @@ func Worker(mapf func(string, string) []KeyValue,
 		}
 
 		// Do to work.
+		intermediate, err := doWork(work)
+
 		var wr WorkResult
-		if err := doWork(*work); err != nil {
+		if err != nil {
 			log.Errorf("[Worker] Fail to do work: %+v", err)
 			wr = ResultError
 		} else {
@@ -48,7 +51,7 @@ func Worker(mapf func(string, string) []KeyValue,
 		}
 
 		// Send result to coordinator.
-		if err := sendWorkResult(work.Kind, work.ID, wr); err != nil {
+		if err := sendWorkResult(work.Kind, work.ID, wr, intermediate); err != nil {
 			log.Errorf("[Worker] Fail to send result: %+v", err)
 			return
 		}
@@ -64,16 +67,47 @@ func requestWork() (*Work, error) {
 	return reply.Work, nil
 }
 
-func doWork(w Work) error {
-	time.Sleep(time.Second)
+func doWork(w *Work) (*string, error) {
+	if w.Kind == KindMap {
+		data, ok := w.Data.(DataMap)
+		if !ok {
+			return nil, errors.New("invalid map data")
+		}
+
+		intermediate, err := doMapWork(w.ID, data)
+		if err != nil {
+			return nil, err
+		}
+		return &intermediate, nil
+	}
+
+	data, ok := w.Data.(DataReduce)
+	if !ok {
+		return nil, errors.New("invalid reduce data")
+	}
+
+	if err := doReduceWork(w.ID, data); err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
+func doMapWork(id int, data DataMap) (string, error) {
+	// time.Sleep(time.Second)
+	return "Hello", nil
+}
+
+func doReduceWork(id int, data DataReduce) error {
+	// time.Sleep(time.Second)
 	return nil
 }
 
-func sendWorkResult(kind WorkKind, id int, wr WorkResult) error {
+func sendWorkResult(kind WorkKind, id int, wr WorkResult, intermediate *string) error {
 	args := SendWorkResultArgs{
-		Kind:       kind,
-		ID:         id,
-		WorkResult: wr,
+		Kind:         kind,
+		ID:           id,
+		WorkResult:   wr,
+		Intermediate: intermediate,
 	}
 	reply := SendWorkResultReply{}
 	if err := call("Coordinator.SendWorkResult", &args, &reply); err != nil {
