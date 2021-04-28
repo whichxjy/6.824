@@ -98,7 +98,7 @@ func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply
 		rw.state = WorkInProgress
 
 		// Push this reduce work to worker.
-		log.Infof("[RequestWork] Assign reduce work %v", mw.id)
+		log.Infof("[RequestWork] Assign reduce work %v", rw.id)
 		reply.Work = &Work{
 			Kind: KindReduce,
 			ID:   rw.id,
@@ -184,8 +184,13 @@ func (c *Coordinator) server() {
 func (c *Coordinator) Done() bool {
 	c.rwm.RLock()
 	defer c.rwm.RUnlock()
-	return c.areAllReduceWorksCompleted()
-	// return true
+
+	done := c.areAllReduceWorksCompleted()
+	if done {
+		log.Infof("[Done] All works are completed")
+	}
+
+	return done
 }
 
 func (c *Coordinator) areAllReduceWorksCompleted() bool {

@@ -39,9 +39,10 @@ const (
 )
 
 type SendWorkResultArgs struct {
-	Kind       WorkKind
-	ID         int
-	WorkResult WorkResult
+	Kind         WorkKind
+	ID           int
+	WorkResult   WorkResult
+	Intermediate *string
 }
 
 type SendWorkResultReply struct{}

@@ -65,11 +65,20 @@ func requestWork() (*Work, error) {
 }
 
 func doWork(w Work) error {
-	time.Sleep(5 * time.Second)
+	time.Sleep(time.Second)
 	return nil
 }
 
 func sendWorkResult(kind WorkKind, id int, wr WorkResult) error {
+	args := SendWorkResultArgs{
+		Kind:       kind,
+		ID:         id,
+		WorkResult: wr,
+	}
+	reply := SendWorkResultReply{}
+	if err := call("Coordinator.SendWorkResult", &args, &reply); err != nil {
+		return err
+	}
 	return nil
 }
 
