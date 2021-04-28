@@ -4,6 +4,7 @@ import (
 	"errors"
 	"hash/fnv"
 	"net/rpc"
+	"strconv"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -15,7 +16,7 @@ type KeyValue struct {
 	Value string
 }
 
-// Use ihash(key) % NReduce to choose the reduce
+// Use ihash(key) % ReduceNum to choose the reduce
 // task number for each KeyValue emitted by Map.
 func ihash(key string) int {
 	h := fnv.New32a()
@@ -69,18 +70,20 @@ func requestWork() (*Work, error) {
 
 func doWork(w *Work) (*string, error) {
 	if w.Kind == KindMap {
+		// Try to do map work.
 		data, ok := w.Data.(DataMap)
 		if !ok {
 			return nil, errors.New("invalid map data")
 		}
 
-		intermediate, err := doMapWork(w.ID, data)
+		intermediate, err := doMapWork(w.ID, data, w.ReduceNum)
 		if err != nil {
 			return nil, err
 		}
 		return &intermediate, nil
 	}
 
+	// Try to do reduce work.
 	data, ok := w.Data.(DataReduce)
 	if !ok {
 		return nil, errors.New("invalid reduce data")
@@ -92,9 +95,9 @@ func doWork(w *Work) (*string, error) {
 	return nil, nil
 }
 
-func doMapWork(id int, data DataMap) (string, error) {
+func doMapWork(id int, data DataMap, reduceNum int) (string, error) {
 	// time.Sleep(time.Second)
-	return "Hello", nil
+	return "Hello " + strconv.Itoa(reduceNum), nil
 }
 
 func doReduceWork(id int, data DataReduce) error {

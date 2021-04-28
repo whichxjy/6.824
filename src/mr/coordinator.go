@@ -36,15 +36,15 @@ type Coordinator struct {
 	rwm         sync.RWMutex
 }
 
-// nReduce is the number of reduce tasks to use.
-func MakeCoordinator(files []string, nReduce int) *Coordinator {
+// ReduceNum is the number of reduce tasks to use.
+func MakeCoordinator(files []string, ReduceNum int) *Coordinator {
 	var c Coordinator
-	c.initStates(files, nReduce)
+	c.initStates(files, ReduceNum)
 	c.server()
 	return &c
 }
 
-func (c *Coordinator) initStates(files []string, nReduce int) {
+func (c *Coordinator) initStates(files []string, ReduceNum int) {
 	c.mapWorks = make([]*mapWork, len(files))
 	for i, file := range files {
 		c.mapWorks[i] = &mapWork{
@@ -54,8 +54,8 @@ func (c *Coordinator) initStates(files []string, nReduce int) {
 		}
 	}
 
-	c.reduceWorks = make([]*reduceWork, nReduce)
-	for i := 0; i < nReduce; i++ {
+	c.reduceWorks = make([]*reduceWork, ReduceNum)
+	for i := 0; i < ReduceNum; i++ {
 		c.reduceWorks[i] = &reduceWork{
 			id:    i,
 			state: WorkIdle,
@@ -77,9 +77,10 @@ func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply
 		// Push this map work to worker.
 		log.Infof("[RequestWork] Assign map work %v", mw.id)
 		reply.Work = &Work{
-			Kind: KindMap,
-			ID:   mw.id,
-			Data: DataMap(mw.data),
+			Kind:      KindMap,
+			ID:        mw.id,
+			Data:      DataMap(mw.data),
+			ReduceNum: len(c.reduceWorks),
 		}
 		return nil
 	}
@@ -100,9 +101,10 @@ func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply
 		// Push this reduce work to worker.
 		log.Infof("[RequestWork] Assign reduce work %v", rw.id)
 		reply.Work = &Work{
-			Kind: KindReduce,
-			ID:   rw.id,
-			Data: DataReduce(rw.data),
+			Kind:      KindReduce,
+			ID:        rw.id,
+			Data:      DataReduce(rw.data),
+			ReduceNum: len(c.reduceWorks),
 		}
 		return nil
 	}
@@ -127,9 +129,17 @@ func (c *Coordinator) SendWorkResult(args *SendWorkResultArgs, reply *SendWorkRe
 
 	if args.Kind == KindMap {
 		c.mapWorks[args.ID].state = newState
+
+		if newState == WorkCompleted {
+
+		}
 	} else {
 		c.reduceWorks[args.ID].state = newState
 	}
+
+	// if args.Kind == KindMap  && {
+
+	// }
 
 	return nil
 }

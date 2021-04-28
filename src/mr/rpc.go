@@ -18,9 +18,10 @@ type DataMap = string
 type DataReduce = []string
 
 type Work struct {
-	Kind WorkKind
-	ID   int
-	Data interface{}
+	Kind      WorkKind
+	ID        int
+	Data      interface{}
+	ReduceNum int
 }
 
 type RequestWorkArgs struct{}
