@@ -31,8 +31,8 @@ type reduceWork struct {
 }
 
 type Coordinator struct {
-	mapWorks    []mapWork
-	reduceWorks []reduceWork
+	mapWorks    []*mapWork
+	reduceWorks []*reduceWork
 	rwm         sync.RWMutex
 }
 
@@ -45,18 +45,18 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 }
 
 func (c *Coordinator) initStates(files []string, nReduce int) {
-	c.mapWorks = make([]mapWork, len(files))
+	c.mapWorks = make([]*mapWork, len(files))
 	for i, file := range files {
-		c.mapWorks[i] = mapWork{
+		c.mapWorks[i] = &mapWork{
 			id:    i,
 			state: WorkIdle,
 			data:  file,
 		}
 	}
 
-	c.reduceWorks = make([]reduceWork, nReduce)
+	c.reduceWorks = make([]*reduceWork, nReduce)
 	for i := 0; i < nReduce; i++ {
-		c.reduceWorks[i] = reduceWork{
+		c.reduceWorks[i] = &reduceWork{
 			id:    i,
 			state: WorkIdle,
 			data:  nil,
@@ -86,6 +86,7 @@ func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply
 
 	if !areAllMapWorksCompleted {
 		// No work to do until all map works are completed.
+		log.Infof("[RequestWork] No work to assign")
 		reply.Work = nil
 		return nil
 	}
@@ -139,7 +140,7 @@ func (c *Coordinator) findNextIdleMapWork() (*mapWork, bool) {
 
 	for _, mw := range c.mapWorks {
 		if mw.state == WorkIdle {
-			return &mw, false
+			return mw, false
 		}
 
 		if mw.state == WorkCompleted {
@@ -156,7 +157,7 @@ func (c *Coordinator) findNextIdleMapWork() (*mapWork, bool) {
 func (c *Coordinator) findNextIdleReduceWork() *reduceWork {
 	for _, rw := range c.reduceWorks {
 		if rw.state == WorkIdle {
-			return &rw
+			return rw
 		}
 	}
 	return nil
