@@ -101,6 +101,7 @@ func doMapWork(
 	content, err := readFileContent(data)
 	if err != nil {
 		log.Errorf("[doMapWork] Fail to read content: %v", err)
+		return nil, err
 	}
 
 	kva := mapf(data, string(content))
@@ -167,7 +168,24 @@ func doReduceWork(
 	id int,
 	data DataReduce,
 ) error {
-	// time.Sleep(time.Second)
+	for _, rdata := range data {
+		// Read reduce task file.
+		content, err := readFileContent(rdata)
+		if err != nil {
+			log.Errorf("[doReduceWork] Fail to read content: %v", err)
+			return err
+		}
+
+		// Convert the content to bucket.
+		var bucket Bucket
+		if err := json.Unmarshal(content, &bucket); err != nil {
+			log.Errorf("[doReduceWork] Fail to convert content: %v", err)
+			return err
+		}
+
+		log.Info(bucket)
+	}
+
 	return nil
 }
 
