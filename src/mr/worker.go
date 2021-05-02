@@ -26,7 +26,7 @@ func ihash(key string) int {
 func Worker(mapf func(string, string) []KeyValue,
 	reducef func(string, []string) string) {
 	for {
-		work, err := requestWork()
+		work, err := callRquestWork()
 		if err != nil {
 			log.Errorf("[Worker] Fail to get work: %+v", err)
 			continue
@@ -51,20 +51,11 @@ func Worker(mapf func(string, string) []KeyValue,
 		}
 
 		// Send result to coordinator.
-		if err := sendWorkResult(work.Kind, work.ID, wr, intermediate); err != nil {
+		if err := callSendWorkResult(work.Kind, work.ID, wr, intermediate); err != nil {
 			log.Errorf("[Worker] Fail to send result: %+v", err)
 			continue
 		}
 	}
-}
-
-func requestWork() (*Work, error) {
-	args := RequestWorkArgs{}
-	reply := RequestWorkReply{}
-	if err := call("Coordinator.RequestWork", &args, &reply); err != nil {
-		return nil, err
-	}
-	return reply.Work, nil
 }
 
 func doWork(w *Work) ([]*string, error) {
@@ -105,7 +96,16 @@ func doReduceWork(id int, data DataReduce) error {
 	return nil
 }
 
-func sendWorkResult(kind WorkKind, id int, wr WorkResult, intermediate []*string) error {
+func callRquestWork() (*Work, error) {
+	args := RequestWorkArgs{}
+	reply := RequestWorkReply{}
+	if err := call("Coordinator.RequestWork", &args, &reply); err != nil {
+		return nil, err
+	}
+	return reply.Work, nil
+}
+
+func callSendWorkResult(kind WorkKind, id int, wr WorkResult, intermediate []*string) error {
 	args := SendWorkResultArgs{
 		Kind:         kind,
 		ID:           id,
