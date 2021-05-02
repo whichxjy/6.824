@@ -63,7 +63,7 @@ func doWork(w *Work) error {
 	return nil
 }
 
-func startToDo(w *Work) ([]*string, error) {
+func startToDo(w *Work) (Intermediate, error) {
 	if w.Kind == KindMap {
 		// Try to do map work.
 		data, ok := w.Data.(DataMap)
@@ -91,10 +91,9 @@ func startToDo(w *Work) ([]*string, error) {
 	return nil, nil
 }
 
-func doMapWork(id int, data DataMap, reduceNum int) ([]*string, error) {
+func doMapWork(id int, data DataMap, reduceNum int) (Intermediate, error) {
 	// time.Sleep(time.Second)
-	s := make([]*string, reduceNum)
-	return s, nil
+	return nil, nil
 }
 
 func doReduceWork(id int, data DataReduce) error {
@@ -111,7 +110,7 @@ func callRquestWork() (*Work, error) {
 	return reply.Work, nil
 }
 
-func callSendWorkResult(kind WorkKind, id int, wr WorkResult, intermediate []*string) error {
+func callSendWorkResult(kind WorkKind, id int, wr WorkResult, intermediate Intermediate) error {
 	args := SendWorkResultArgs{
 		Kind:         kind,
 		ID:           id,

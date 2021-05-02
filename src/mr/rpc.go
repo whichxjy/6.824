@@ -39,11 +39,13 @@ const (
 	ResultError
 )
 
+type Intermediate map[int]string
+
 type SendWorkResultArgs struct {
 	Kind         WorkKind
 	ID           int
 	WorkResult   WorkResult
-	Intermediate []*string
+	Intermediate Intermediate
 }
 
 type SendWorkResultReply struct{}

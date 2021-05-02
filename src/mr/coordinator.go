@@ -1,7 +1,6 @@
 package mr
 
 import (
-	"errors"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -176,16 +175,16 @@ func (c *Coordinator) findNextIdleReduceWork() *reduceWork {
 	return nil
 }
 
-func (c *Coordinator) assignIntermediate(intermediate []*string) error {
-	if len(intermediate) != len(c.reduceWorks) {
-		return errors.New("invalid intermediate")
-	}
+func (c *Coordinator) assignIntermediate(intermediate Intermediate) error {
+	// if len(intermediate) != len(c.reduceWorks) {
+	// 	return errors.New("invalid intermediate")
+	// }
 
-	for i, rdata := range intermediate {
-		if rdata != nil {
-			c.reduceWorks[i].data = append(c.reduceWorks[i].data, *rdata)
-		}
-	}
+	// for i, rdata := range intermediate {
+	// 	if rdata != nil {
+	// 		c.reduceWorks[i].data = append(c.reduceWorks[i].data, *rdata)
+	// 	}
+	// }
 
 	return nil
 }
