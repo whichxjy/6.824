@@ -59,7 +59,14 @@ func Get(cfg *config, ck *Clerk, key string, log *OpLog, cli int) string {
 	return v
 }
 
-func Put(cfg *config, ck *Clerk, key string, value string, log *OpLog, cli int) {
+func Put(
+	cfg *config,
+	ck *Clerk,
+	key string,
+	value string,
+	log *OpLog,
+	cli int,
+) {
 	start := time.Now().UnixNano()
 	ck.Put(key, value)
 	end := time.Now().UnixNano()
@@ -75,7 +82,14 @@ func Put(cfg *config, ck *Clerk, key string, value string, log *OpLog, cli int) 
 	}
 }
 
-func Append(cfg *config, ck *Clerk, key string, value string, log *OpLog, cli int) {
+func Append(
+	cfg *config,
+	ck *Clerk,
+	key string,
+	value string,
+	log *OpLog,
+	cli int,
+) {
 	start := time.Now().UnixNano()
 	ck.Append(key, value)
 	end := time.Now().UnixNano()
@@ -99,7 +113,13 @@ func check(cfg *config, t *testing.T, ck *Clerk, key string, value string) {
 }
 
 // a client runs the function f and then signals it is done
-func run_client(t *testing.T, cfg *config, me int, ca chan bool, fn func(me int, ck *Clerk, t *testing.T)) {
+func run_client(
+	t *testing.T,
+	cfg *config,
+	me int,
+	ca chan bool,
+	fn func(me int, ck *Clerk, t *testing.T),
+) {
 	ok := false
 	defer func() { ca <- ok }()
 	ck := cfg.makeClient(cfg.All())
@@ -109,7 +129,12 @@ func run_client(t *testing.T, cfg *config, me int, ca chan bool, fn func(me int,
 }
 
 // spawn ncli clients and wait until they are all done
-func spawn_clients_and_wait(t *testing.T, cfg *config, ncli int, fn func(me int, ck *Clerk, t *testing.T)) {
+func spawn_clients_and_wait(
+	t *testing.T,
+	cfg *config,
+	ncli int,
+	fn func(me int, ck *Clerk, t *testing.T),
+) {
 	ca := make([]chan bool, ncli)
 	for cli := 0; cli < ncli; cli++ {
 		ca[cli] = make(chan bool)
@@ -138,7 +163,12 @@ func checkClntAppends(t *testing.T, clnt int, v string, count int) {
 		wanted := "x " + strconv.Itoa(clnt) + " " + strconv.Itoa(j) + " y"
 		off := strings.Index(v, wanted)
 		if off < 0 {
-			t.Fatalf("%v missing element %v in Append result %v", clnt, wanted, v)
+			t.Fatalf(
+				"%v missing element %v in Append result %v",
+				clnt,
+				wanted,
+				v,
+			)
 		}
 		off1 := strings.LastIndex(v, wanted)
 		if off1 != off {
@@ -161,7 +191,12 @@ func checkConcurrentAppends(t *testing.T, v string, counts []int) {
 			wanted := "x " + strconv.Itoa(i) + " " + strconv.Itoa(j) + " y"
 			off := strings.Index(v, wanted)
 			if off < 0 {
-				t.Fatalf("%v missing element %v in Append result %v", i, wanted, v)
+				t.Fatalf(
+					"%v missing element %v in Append result %v",
+					i,
+					wanted,
+					v,
+				)
 			}
 			off1 := strings.LastIndex(v, wanted)
 			if off1 != off {
@@ -193,7 +228,9 @@ func partitioner(t *testing.T, cfg *config, ch chan bool, done *int32) {
 			}
 		}
 		cfg.partition(pa[0], pa[1])
-		time.Sleep(electionTimeout + time.Duration(rand.Int63()%200)*time.Millisecond)
+		time.Sleep(
+			electionTimeout + time.Duration(rand.Int63()%200)*time.Millisecond,
+		)
 	}
 }
 
@@ -206,7 +243,17 @@ func partitioner(t *testing.T, cfg *config, ch chan bool, done *int32) {
 // maxraftstate is a positive number, the size of the state for Raft (i.e., log
 // size) shouldn't exceed 8*maxraftstate. If maxraftstate is negative,
 // snapshots shouldn't be used.
-func GenericTest(t *testing.T, part string, nclients int, nservers int, unreliable bool, crash bool, partitions bool, maxraftstate int, randomkeys bool) {
+func GenericTest(
+	t *testing.T,
+	part string,
+	nclients int,
+	nservers int,
+	unreliable bool,
+	crash bool,
+	partitions bool,
+	maxraftstate int,
+	randomkeys bool,
+) {
 
 	title := "Test: "
 	if unreliable {
@@ -253,45 +300,54 @@ func GenericTest(t *testing.T, part string, nclients int, nservers int, unreliab
 		// log.Printf("Iteration %v\n", i)
 		atomic.StoreInt32(&done_clients, 0)
 		atomic.StoreInt32(&done_partitioner, 0)
-		go spawn_clients_and_wait(t, cfg, nclients, func(cli int, myck *Clerk, t *testing.T) {
-			j := 0
-			defer func() {
-				clnts[cli] <- j
-			}()
-			last := "" // only used when not randomkeys
-			if !randomkeys {
-				Put(cfg, myck, strconv.Itoa(cli), last, opLog, cli)
-			}
-			for atomic.LoadInt32(&done_clients) == 0 {
-				var key string
-				if randomkeys {
-					key = strconv.Itoa(rand.Intn(nclients))
-				} else {
-					key = strconv.Itoa(cli)
+		go spawn_clients_and_wait(
+			t,
+			cfg,
+			nclients,
+			func(cli int, myck *Clerk, t *testing.T) {
+				j := 0
+				defer func() {
+					clnts[cli] <- j
+				}()
+				last := "" // only used when not randomkeys
+				if !randomkeys {
+					Put(cfg, myck, strconv.Itoa(cli), last, opLog, cli)
 				}
-				nv := "x " + strconv.Itoa(cli) + " " + strconv.Itoa(j) + " y"
-				if (rand.Int() % 1000) < 500 {
-					// log.Printf("%d: client new append %v\n", cli, nv)
-					Append(cfg, myck, key, nv, opLog, cli)
-					if !randomkeys {
-						last = NextValue(last, nv)
+				for atomic.LoadInt32(&done_clients) == 0 {
+					var key string
+					if randomkeys {
+						key = strconv.Itoa(rand.Intn(nclients))
+					} else {
+						key = strconv.Itoa(cli)
 					}
-					j++
-				} else if randomkeys && (rand.Int()%1000) < 100 {
-					// we only do this when using random keys, because it would break the
-					// check done after Get() operations
-					Put(cfg, myck, key, nv, opLog, cli)
-					j++
-				} else {
-					// log.Printf("%d: client new get %v\n", cli, key)
-					v := Get(cfg, myck, key, opLog, cli)
-					// the following check only makes sense when we're not using random keys
-					if !randomkeys && v != last {
-						t.Fatalf("get wrong value, key %v, wanted:\n%v\n, got\n%v\n", key, last, v)
+					nv := "x " + strconv.Itoa(
+						cli,
+					) + " " + strconv.Itoa(
+						j,
+					) + " y"
+					if (rand.Int() % 1000) < 500 {
+						// log.Printf("%d: client new append %v\n", cli, nv)
+						Append(cfg, myck, key, nv, opLog, cli)
+						if !randomkeys {
+							last = NextValue(last, nv)
+						}
+						j++
+					} else if randomkeys && (rand.Int()%1000) < 100 {
+						// we only do this when using random keys, because it would break the
+						// check done after Get() operations
+						Put(cfg, myck, key, nv, opLog, cli)
+						j++
+					} else {
+						// log.Printf("%d: client new get %v\n", cli, key)
+						v := Get(cfg, myck, key, opLog, cli)
+						// the following check only makes sense when we're not using random keys
+						if !randomkeys && v != last {
+							t.Fatalf("get wrong value, key %v, wanted:\n%v\n, got\n%v\n", key, last, v)
+						}
 					}
 				}
-			}
-		})
+			},
+		)
 
 		if partitions {
 			// Allow the clients to perform some operations without interruption
@@ -358,12 +414,20 @@ func GenericTest(t *testing.T, part string, nclients int, nservers int, unreliab
 			// Check that snapshots are not used
 			ssz := cfg.SnapshotSize()
 			if ssz > 0 {
-				t.Fatalf("snapshot too large (%v), should not be used when maxraftstate = %d", ssz, maxraftstate)
+				t.Fatalf(
+					"snapshot too large (%v), should not be used when maxraftstate = %d",
+					ssz,
+					maxraftstate,
+				)
 			}
 		}
 	}
 
-	res, info := porcupine.CheckOperationsVerbose(models.KvModel, opLog.Read(), linearizabilityCheckTimeout)
+	res, info := porcupine.CheckOperationsVerbose(
+		models.KvModel,
+		opLog.Read(),
+		linearizabilityCheckTimeout,
+	)
 	if res == porcupine.Illegal {
 		file, err := ioutil.TempFile("", "*.html")
 		if err != nil {
@@ -413,7 +477,11 @@ func GenericTestSpeed(t *testing.T, part string, maxraftstate int) {
 	const opsPerInterval = 3
 	const timePerOp = heartbeatInterval / opsPerInterval
 	if dur > numOps*timePerOp {
-		t.Fatalf("Operations completed too slowly %v/op > %v/op\n", dur/numOps, timePerOp)
+		t.Fatalf(
+			"Operations completed too slowly %v/op > %v/op\n",
+			dur/numOps,
+			timePerOp,
+		)
 	}
 
 	cfg.end()
@@ -451,13 +519,25 @@ func TestUnreliableOneKey3A(t *testing.T) {
 
 	const nclient = 5
 	const upto = 10
-	spawn_clients_and_wait(t, cfg, nclient, func(me int, myck *Clerk, t *testing.T) {
-		n := 0
-		for n < upto {
-			Append(cfg, myck, "k", "x "+strconv.Itoa(me)+" "+strconv.Itoa(n)+" y", nil, -1)
-			n++
-		}
-	})
+	spawn_clients_and_wait(
+		t,
+		cfg,
+		nclient,
+		func(me int, myck *Clerk, t *testing.T) {
+			n := 0
+			for n < upto {
+				Append(
+					cfg,
+					myck,
+					"k",
+					"x "+strconv.Itoa(me)+" "+strconv.Itoa(n)+" y",
+					nil,
+					-1,
+				)
+				n++
+			}
+		},
+	)
 
 	var counts []int
 	for i := 0; i < nclient; i++ {
@@ -713,7 +793,9 @@ func TestSnapshotUnreliableRecoverConcurrentPartition3B(t *testing.T) {
 	GenericTest(t, "3B", 5, 5, true, true, true, 1000, false)
 }
 
-func TestSnapshotUnreliableRecoverConcurrentPartitionLinearizable3B(t *testing.T) {
+func TestSnapshotUnreliableRecoverConcurrentPartitionLinearizable3B(
+	t *testing.T,
+) {
 	// Test: unreliable net, restarts, partitions, snapshots, random keys, many clients (3B) ...
 	GenericTest(t, "3B", 15, 7, true, true, true, 1000, true)
 }

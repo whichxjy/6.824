@@ -108,7 +108,10 @@ func convertEntries(events []Event) []entry {
 			kind = returnEntry
 		}
 		// use index as "time"
-		entries = append(entries, entry{kind, elem.Value, elem.Id, int64(i), elem.ClientId})
+		entries = append(
+			entries,
+			entry{kind, elem.Value, elem.Id, int64(i), elem.ClientId},
+		)
 	}
 	return entries
 }
@@ -137,9 +140,14 @@ type cacheEntry struct {
 	state      interface{}
 }
 
-func cacheContains(model Model, cache map[uint64][]cacheEntry, entry cacheEntry) bool {
+func cacheContains(
+	model Model,
+	cache map[uint64][]cacheEntry,
+	entry cacheEntry,
+) bool {
 	for _, elem := range cache[entry.linearized.hash()] {
-		if entry.linearized.equals(elem.linearized) && model.Equal(entry.state, elem.state) {
+		if entry.linearized.equals(elem.linearized) &&
+			model.Equal(entry.state, elem.state) {
 			return true
 		}
 	}
@@ -171,7 +179,12 @@ func unlift(entry *node) {
 	entry.next.prev = entry
 }
 
-func checkSingle(model Model, history []entry, computePartial bool, kill *int32) (bool, []*[]int) {
+func checkSingle(
+	model Model,
+	history []entry,
+	computePartial bool,
+	kill *int32,
+) (bool, []*[]int) {
 	entry := makeLinkedEntries(history)
 	n := length(entry) / 2
 	linearized := newBitset(uint(n))
@@ -266,7 +279,12 @@ func fillDefault(model Model) Model {
 	return model
 }
 
-func checkParallel(model Model, history [][]entry, computeInfo bool, timeout time.Duration) (CheckResult, linearizationInfo) {
+func checkParallel(
+	model Model,
+	history [][]entry,
+	computeInfo bool,
+	timeout time.Duration,
+) (CheckResult, linearizationInfo) {
 	ok := true
 	timedOut := false
 	results := make(chan bool, len(history))
@@ -347,7 +365,12 @@ loop:
 	return result, info
 }
 
-func checkEvents(model Model, history []Event, verbose bool, timeout time.Duration) (CheckResult, linearizationInfo) {
+func checkEvents(
+	model Model,
+	history []Event,
+	verbose bool,
+	timeout time.Duration,
+) (CheckResult, linearizationInfo) {
 	model = fillDefault(model)
 	partitions := model.PartitionEvent(history)
 	l := make([][]entry, len(partitions))
@@ -357,7 +380,12 @@ func checkEvents(model Model, history []Event, verbose bool, timeout time.Durati
 	return checkParallel(model, l, verbose, timeout)
 }
 
-func checkOperations(model Model, history []Operation, verbose bool, timeout time.Duration) (CheckResult, linearizationInfo) {
+func checkOperations(
+	model Model,
+	history []Operation,
+	verbose bool,
+	timeout time.Duration,
+) (CheckResult, linearizationInfo) {
 	model = fillDefault(model)
 	partitions := model.Partition(history)
 	l := make([][]entry, len(partitions))

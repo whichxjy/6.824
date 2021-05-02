@@ -25,8 +25,10 @@ func ihash(key string) int {
 	return int(h.Sum32() & 0x7fffffff)
 }
 
-func Worker(mapf func(string, string) []KeyValue,
-	reducef func(string, []string) string) {
+func Worker(
+	mapf func(string, string) []KeyValue,
+	reducef func(string, []string) string,
+) {
 	for {
 		work, err := callRquestWork()
 		if err != nil {
@@ -127,7 +129,12 @@ func callRquestWork() (*Work, error) {
 	return reply.Work, nil
 }
 
-func callSendWorkResult(kind WorkKind, id int, wr WorkResult, intermediate Intermediate) error {
+func callSendWorkResult(
+	kind WorkKind,
+	id int,
+	wr WorkResult,
+	intermediate Intermediate,
+) error {
 	args := SendWorkResultArgs{
 		Kind:         kind,
 		ID:           id,

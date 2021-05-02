@@ -54,7 +54,10 @@ type Clerk struct {
 // Config.Groups[gid][i] into a labrpc.ClientEnd on which you can
 // send RPCs.
 //
-func MakeClerk(ctrlers []*labrpc.ClientEnd, make_end func(string) *labrpc.ClientEnd) *Clerk {
+func MakeClerk(
+	ctrlers []*labrpc.ClientEnd,
+	make_end func(string) *labrpc.ClientEnd,
+) *Clerk {
 	ck := new(Clerk)
 	ck.sm = shardctrler.MakeClerk(ctrlers)
 	ck.make_end = make_end

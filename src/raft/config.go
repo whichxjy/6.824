@@ -66,7 +66,9 @@ var ncpu_once sync.Once
 func make_config(t *testing.T, n int, unreliable bool, snapshot bool) *config {
 	ncpu_once.Do(func() {
 		if runtime.NumCPU() < 2 {
-			fmt.Printf("warning: only one CPU, which may conceal locking bugs\n")
+			fmt.Printf(
+				"warning: only one CPU, which may conceal locking bugs\n",
+			)
 		}
 		rand.Seed(makeSeed())
 	})
@@ -144,8 +146,14 @@ func (cfg *config) checkLogs(i int, m ApplyMsg) (string, bool) {
 		if old, oldok := cfg.logs[j][m.CommandIndex]; oldok && old != v {
 			log.Printf("%v: log %v; server %v\n", i, cfg.logs[i], cfg.logs[j])
 			// some server has already committed a different value for this entry!
-			err_msg = fmt.Sprintf("commit index=%v server=%v %v != server=%v %v",
-				m.CommandIndex, i, m.Command, j, old)
+			err_msg = fmt.Sprintf(
+				"commit index=%v server=%v %v != server=%v %v",
+				m.CommandIndex,
+				i,
+				m.Command,
+				j,
+				old,
+			)
 		}
 	}
 	_, prevok := cfg.logs[i][m.CommandIndex-1]
@@ -427,7 +435,10 @@ func (cfg *config) checkNoLeader() {
 		if cfg.connected[i] {
 			_, is_leader := cfg.rafts[i].GetState()
 			if is_leader {
-				cfg.t.Fatalf("expected no leader, but %v claims to be leader", i)
+				cfg.t.Fatalf(
+					"expected no leader, but %v claims to be leader",
+					i,
+				)
 			}
 		}
 	}
@@ -448,8 +459,12 @@ func (cfg *config) nCommitted(index int) (int, interface{}) {
 
 		if ok {
 			if count > 0 && cmd != cmd1 {
-				cfg.t.Fatalf("committed values do not match: index %v, %v, %v\n",
-					index, cmd, cmd1)
+				cfg.t.Fatalf(
+					"committed values do not match: index %v, %v, %v\n",
+					index,
+					cmd,
+					cmd1,
+				)
 			}
 			count += 1
 			cmd = cmd1

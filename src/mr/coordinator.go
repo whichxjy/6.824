@@ -65,7 +65,10 @@ func (c *Coordinator) initStates(files []string, ReduceNum int) {
 	}
 }
 
-func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply) error {
+func (c *Coordinator) RequestWork(
+	args *RequestWorkArgs,
+	reply *RequestWorkReply,
+) error {
 	c.rwm.Lock()
 	defer c.rwm.Unlock()
 
@@ -117,7 +120,10 @@ func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply
 	return nil
 }
 
-func (c *Coordinator) SendWorkResult(args *SendWorkResultArgs, reply *SendWorkResultReply) error {
+func (c *Coordinator) SendWorkResult(
+	args *SendWorkResultArgs,
+	reply *SendWorkResultReply,
+) error {
 	c.rwm.Lock()
 	defer c.rwm.Unlock()
 
@@ -133,7 +139,10 @@ func (c *Coordinator) SendWorkResult(args *SendWorkResultArgs, reply *SendWorkRe
 	if args.Kind == KindMap {
 		if newState == WorkCompleted {
 			if err := c.assignIntermediate(args.Intermediate); err != nil {
-				log.Errorf("[SendWorkResult] Fail to assign intermediate: %v", err)
+				log.Errorf(
+					"[SendWorkResult] Fail to assign intermediate: %v",
+					err,
+				)
 				return err
 			}
 		}

@@ -61,7 +61,11 @@ func (sc *ShardCtrler) Raft() *raft.Raft {
 // form the fault-tolerant shardctrler service.
 // me is the index of the current server in servers[].
 //
-func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister) *ShardCtrler {
+func StartServer(
+	servers []*labrpc.ClientEnd,
+	me int,
+	persister *raft.Persister,
+) *ShardCtrler {
 	sc := new(ShardCtrler)
 	sc.me = me
 

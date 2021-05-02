@@ -654,7 +654,13 @@ func TestUnreliable3(t *testing.T) {
 		end := int64(time.Since(begin))
 		inp := models.KvInput{Op: 1, Key: ka[i], Value: va[i]}
 		var out models.KvOutput
-		op := porcupine.Operation{Input: inp, Call: start, Output: out, Return: end, ClientId: 0}
+		op := porcupine.Operation{
+			Input:    inp,
+			Call:     start,
+			Output:   out,
+			Return:   end,
+			ClientId: 0,
+		}
 		operations = append(operations, op)
 	}
 
@@ -682,7 +688,13 @@ func TestUnreliable3(t *testing.T) {
 				out = models.KvOutput{Value: v}
 			}
 			end := int64(time.Since(begin))
-			op := porcupine.Operation{Input: inp, Call: start, Output: out, Return: end, ClientId: i}
+			op := porcupine.Operation{
+				Input:    inp,
+				Call:     start,
+				Output:   out,
+				Return:   end,
+				ClientId: i,
+			}
 			opMu.Lock()
 			operations = append(operations, op)
 			opMu.Unlock()
@@ -713,7 +725,11 @@ func TestUnreliable3(t *testing.T) {
 		<-ch
 	}
 
-	res, info := porcupine.CheckOperationsVerbose(models.KvModel, operations, linearizabilityCheckTimeout)
+	res, info := porcupine.CheckOperationsVerbose(
+		models.KvModel,
+		operations,
+		linearizabilityCheckTimeout,
+	)
 	if res == porcupine.Illegal {
 		file, err := ioutil.TempFile("", "*.html")
 		if err != nil {
@@ -809,7 +825,11 @@ func TestChallenge1Delete(t *testing.T) {
 	// plus slop.
 	expected := 3 * (((n - 3) * 1000) + 2*3*1000 + 6000)
 	if total > expected {
-		t.Fatalf("snapshot + persisted Raft state are too big: %v > %v\n", total, expected)
+		t.Fatalf(
+			"snapshot + persisted Raft state are too big: %v > %v\n",
+			total,
+			expected,
+		)
 	}
 
 	for i := 0; i < n; i++ {

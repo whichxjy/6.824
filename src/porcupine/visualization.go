@@ -30,7 +30,10 @@ type partitionVisualizationData struct {
 
 type visualizationData = []partitionVisualizationData
 
-func computeVisualizationData(model Model, info linearizationInfo) visualizationData {
+func computeVisualizationData(
+	model Model,
+	info linearizationInfo,
+) visualizationData {
 	model = fillDefault(model)
 	data := make(visualizationData, len(info.history))
 	for partition := 0; partition < len(info.history); partition++ {
@@ -47,14 +50,20 @@ func computeVisualizationData(model Model, info linearizationInfo) visualization
 				callValue[elem.id] = elem.value
 			case returnEntry:
 				history[elem.id].End = elem.time
-				history[elem.id].Description = model.DescribeOperation(callValue[elem.id], elem.value)
+				history[elem.id].Description = model.DescribeOperation(
+					callValue[elem.id],
+					elem.value,
+				)
 				returnValue[elem.id] = elem.value
 			}
 		}
 		// partial linearizations
 		largestIndex := make(map[int]int)
 		largestSize := make(map[int]int)
-		linearizations := make([]partialLinearization, len(info.partialLinearizations[partition]))
+		linearizations := make(
+			[]partialLinearization,
+			len(info.partialLinearizations[partition]),
+		)
 		partials := info.partialLinearizations[partition]
 		sort.Slice(partials, func(i, j int) bool {
 			return len(partials[i]) > len(partials[j])
@@ -64,9 +73,15 @@ func computeVisualizationData(model Model, info linearizationInfo) visualization
 			state := model.Init()
 			for j, histId := range partial {
 				var ok bool
-				ok, state = model.Step(state, callValue[histId], returnValue[histId])
+				ok, state = model.Step(
+					state,
+					callValue[histId],
+					returnValue[histId],
+				)
 				if ok != true {
-					panic("valid partial linearization returned non-ok result from model step")
+					panic(
+						"valid partial linearization returned non-ok result from model step",
+					)
 				}
 				stateDesc := model.DescribeState(state)
 				linearization[j] = linearizationStep{histId, stateDesc}

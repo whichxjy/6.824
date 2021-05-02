@@ -682,7 +682,9 @@ func TestPersist32C(t *testing.T) {
 	cfg := make_config(t, servers, false, false)
 	defer cfg.cleanup()
 
-	cfg.begin("Test (2C): partitioned leader and one follower crash, leader restarts")
+	cfg.begin(
+		"Test (2C): partitioned leader and one follower crash, leader restarts",
+	)
 
 	cfg.one(101, 3, true)
 
@@ -832,7 +834,8 @@ func TestFigure8Unreliable2C(t *testing.T) {
 			time.Sleep(time.Duration(ms) * time.Millisecond)
 		}
 
-		if leader != -1 && (rand.Int()%1000) < int(RaftElectionTimeout/time.Millisecond)/2 {
+		if leader != -1 &&
+			(rand.Int()%1000) < int(RaftElectionTimeout/time.Millisecond)/2 {
 			cfg.disconnect(leader)
 			nup -= 1
 		}
@@ -1012,7 +1015,13 @@ func TestUnreliableChurn2C(t *testing.T) {
 
 const MAXLOGSIZE = 2000
 
-func snapcommon(t *testing.T, name string, disconnect bool, reliable bool, crash bool) {
+func snapcommon(
+	t *testing.T,
+	name string,
+	disconnect bool,
+	reliable bool,
+	crash bool,
+) {
 	iters := 30
 	servers := 3
 	cfg := make_config(t, servers, !reliable, true)
@@ -1071,7 +1080,13 @@ func TestSnapshotBasic2D(t *testing.T) {
 }
 
 func TestSnapshotInstall2D(t *testing.T) {
-	snapcommon(t, "Test (2D): install snapshots (disconnect)", true, true, false)
+	snapcommon(
+		t,
+		"Test (2D): install snapshots (disconnect)",
+		true,
+		true,
+		false,
+	)
 }
 
 func TestSnapshotInstallUnreliable2D(t *testing.T) {
@@ -1084,5 +1099,11 @@ func TestSnapshotInstallCrash2D(t *testing.T) {
 }
 
 func TestSnapshotInstallUnCrash2D(t *testing.T) {
-	snapcommon(t, "Test (2D): install snapshots (unreliable+crash)", false, false, true)
+	snapcommon(
+		t,
+		"Test (2D): install snapshots (unreliable+crash)",
+		false,
+		false,
+		true,
+	)
 }

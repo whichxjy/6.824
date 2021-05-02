@@ -361,10 +361,17 @@ func (cfg *config) make_partition() ([]int, []int) {
 
 var ncpu_once sync.Once
 
-func make_config(t *testing.T, n int, unreliable bool, maxraftstate int) *config {
+func make_config(
+	t *testing.T,
+	n int,
+	unreliable bool,
+	maxraftstate int,
+) *config {
 	ncpu_once.Do(func() {
 		if runtime.NumCPU() < 2 {
-			fmt.Printf("warning: only one CPU, which may conceal locking bugs\n")
+			fmt.Printf(
+				"warning: only one CPU, which may conceal locking bugs\n",
+			)
 		}
 		rand.Seed(makeSeed())
 	})
@@ -421,7 +428,9 @@ func (cfg *config) end() {
 		t := time.Since(cfg.t0).Seconds()  // real time
 		npeers := cfg.n                    // number of Raft peers
 		nrpc := cfg.rpcTotal() - cfg.rpcs0 // number of RPC sends
-		ops := atomic.LoadInt32(&cfg.ops)  //  number of clerk get/put/append calls
+		ops := atomic.LoadInt32(
+			&cfg.ops,
+		) //  number of clerk get/put/append calls
 
 		fmt.Printf("  ... Passed --")
 		fmt.Printf("  %4.1f  %d %5d %4d\n", t, npeers, nrpc, ops)

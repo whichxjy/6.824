@@ -84,7 +84,11 @@ type ClientEnd struct {
 // send an RPC, wait for the reply.
 // the return value indicates success; false means that
 // no reply was received from the server.
-func (e *ClientEnd) Call(svcMeth string, args interface{}, reply interface{}) bool {
+func (e *ClientEnd) Call(
+	svcMeth string,
+	args interface{},
+	reply interface{},
+) bool {
 	req := reqMsg{}
 	req.endname = e.endname
 	req.svcMeth = svcMeth
@@ -208,7 +212,11 @@ func (rn *Network) readEndnameInfo(endname interface{}) (enabled bool,
 	return
 }
 
-func (rn *Network) isServerDead(endname interface{}, servername interface{}, server *Server) bool {
+func (rn *Network) isServerDead(
+	endname interface{},
+	servername interface{},
+	server *Server,
+) bool {
 	rn.mu.Lock()
 	defer rn.mu.Unlock()
 
@@ -219,7 +227,9 @@ func (rn *Network) isServerDead(endname interface{}, servername interface{}, ser
 }
 
 func (rn *Network) processReq(req reqMsg) {
-	enabled, servername, server, reliable, longreordering := rn.readEndnameInfo(req.endname)
+	enabled, servername, server, reliable, longreordering := rn.readEndnameInfo(
+		req.endname,
+	)
 
 	if enabled && servername != nil && server != nil {
 		if reliable == false {

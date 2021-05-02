@@ -98,8 +98,11 @@ func (cfg *config) checklogs() {
 			raft := cfg.groups[gi].saved[i].RaftStateSize()
 			snap := len(cfg.groups[gi].saved[i].ReadSnapshot())
 			if cfg.maxraftstate >= 0 && raft > 8*cfg.maxraftstate {
-				cfg.t.Fatalf("persister.RaftStateSize() %v, but maxraftstate %v",
-					raft, cfg.maxraftstate)
+				cfg.t.Fatalf(
+					"persister.RaftStateSize() %v, but maxraftstate %v",
+					raft,
+					cfg.maxraftstate,
+				)
 			}
 			if cfg.maxraftstate < 0 && snap > 0 {
 				cfg.t.Fatalf("maxraftstate is -1, but snapshot is non-empty!")
@@ -339,10 +342,17 @@ func (cfg *config) leavem(gis []int) {
 
 var ncpu_once sync.Once
 
-func make_config(t *testing.T, n int, unreliable bool, maxraftstate int) *config {
+func make_config(
+	t *testing.T,
+	n int,
+	unreliable bool,
+	maxraftstate int,
+) *config {
 	ncpu_once.Do(func() {
 		if runtime.NumCPU() < 2 {
-			fmt.Printf("warning: only one CPU, which may conceal locking bugs\n")
+			fmt.Printf(
+				"warning: only one CPU, which may conceal locking bugs\n",
+			)
 		}
 		rand.Seed(makeSeed())
 	})

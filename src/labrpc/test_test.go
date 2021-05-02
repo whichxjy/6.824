@@ -207,7 +207,11 @@ func TestCounts(t *testing.T) {
 		e.Call("JunkServer.Handler2", i, &reply)
 		wanted := "handler2-" + strconv.Itoa(i)
 		if reply != wanted {
-			t.Fatalf("wrong reply %v from Handler1, expecting %v", reply, wanted)
+			t.Fatalf(
+				"wrong reply %v from Handler1, expecting %v",
+				reply,
+				wanted,
+			)
 		}
 	}
 
@@ -246,7 +250,11 @@ func TestBytes(t *testing.T) {
 		e.Call("JunkServer.Handler6", args, &reply)
 		wanted := len(args)
 		if reply != wanted {
-			t.Fatalf("wrong reply %v from Handler6, expecting %v", reply, wanted)
+			t.Fatalf(
+				"wrong reply %v from Handler6, expecting %v",
+				reply,
+				wanted,
+			)
 		}
 	}
 
@@ -261,7 +269,11 @@ func TestBytes(t *testing.T) {
 		e.Call("JunkServer.Handler7", args, &reply)
 		wanted := args
 		if len(reply) != wanted {
-			t.Fatalf("wrong reply len=%v from Handler6, expecting %v", len(reply), wanted)
+			t.Fatalf(
+				"wrong reply len=%v from Handler6, expecting %v",
+				len(reply),
+				wanted,
+			)
 		}
 	}
 
@@ -306,7 +318,11 @@ func TestConcurrentMany(t *testing.T) {
 				e.Call("JunkServer.Handler2", arg, &reply)
 				wanted := "handler2-" + strconv.Itoa(arg)
 				if reply != wanted {
-					t.Fatalf("wrong reply %v from Handler1, expecting %v", reply, wanted)
+					t.Fatalf(
+						"wrong reply %v from Handler1, expecting %v",
+						reply,
+						wanted,
+					)
 				}
 				n += 1
 			}
@@ -320,7 +336,11 @@ func TestConcurrentMany(t *testing.T) {
 	}
 
 	if total != nclients*nrpcs {
-		t.Fatalf("wrong number of RPCs completed, got %v, expected %v", total, nclients*nrpcs)
+		t.Fatalf(
+			"wrong number of RPCs completed, got %v, expected %v",
+			total,
+			nclients*nrpcs,
+		)
 	}
 
 	n := rn.GetCount(1000)
@@ -364,7 +384,11 @@ func TestUnreliable(t *testing.T) {
 			if ok {
 				wanted := "handler2-" + strconv.Itoa(arg)
 				if reply != wanted {
-					t.Fatalf("wrong reply %v from Handler1, expecting %v", reply, wanted)
+					t.Fatalf(
+						"wrong reply %v from Handler1, expecting %v",
+						reply,
+						wanted,
+					)
 				}
 				n += 1
 			}
@@ -415,7 +439,11 @@ func TestConcurrentOne(t *testing.T) {
 			e.Call("JunkServer.Handler2", arg, &reply)
 			wanted := "handler2-" + strconv.Itoa(arg)
 			if reply != wanted {
-				t.Fatalf("wrong reply %v from Handler2, expecting %v", reply, wanted)
+				t.Fatalf(
+					"wrong reply %v from Handler2, expecting %v",
+					reply,
+					wanted,
+				)
 			}
 			n += 1
 		}(ii)
@@ -428,7 +456,11 @@ func TestConcurrentOne(t *testing.T) {
 	}
 
 	if total != nrpcs {
-		t.Fatalf("wrong number of RPCs completed, got %v, expected %v", total, nrpcs)
+		t.Fatalf(
+			"wrong number of RPCs completed, got %v, expected %v",
+			total,
+			nrpcs,
+		)
 	}
 
 	js.mu.Lock()
@@ -492,7 +524,11 @@ func TestRegression1(t *testing.T) {
 		e.Call("JunkServer.Handler2", arg, &reply)
 		wanted := "handler2-" + strconv.Itoa(arg)
 		if reply != wanted {
-			t.Fatalf("wrong reply %v from Handler2, expecting %v", reply, wanted)
+			t.Fatalf(
+				"wrong reply %v from Handler2, expecting %v",
+				reply,
+				wanted,
+			)
 		}
 	}
 	dur := time.Since(t0).Seconds()
@@ -508,7 +544,10 @@ func TestRegression1(t *testing.T) {
 	js.mu.Lock()
 	defer js.mu.Unlock()
 	if len(js.log2) != 1 {
-		t.Fatalf("wrong number (%v) of RPCs delivered, expected 1", len(js.log2))
+		t.Fatalf(
+			"wrong number (%v) of RPCs delivered, expected 1",
+			len(js.log2),
+		)
 	}
 
 	n := rn.GetCount(1000)
