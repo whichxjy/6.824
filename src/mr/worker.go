@@ -71,12 +71,7 @@ func startToDo(w *Work) (Intermediate, error) {
 			return nil, errors.New("invalid map data")
 		}
 
-		intermediate, err := doMapWork(w.ID, data, w.ReduceNum)
-		if err != nil {
-			return nil, err
-		}
-
-		return intermediate, nil
+		return doMapWork(w.ID, data, w.ReduceNum)
 	}
 
 	// Try to do reduce work.
@@ -85,10 +80,7 @@ func startToDo(w *Work) (Intermediate, error) {
 		return nil, errors.New("invalid reduce data")
 	}
 
-	if err := doReduceWork(w.ID, data); err != nil {
-		return nil, err
-	}
-	return nil, nil
+	return nil, doReduceWork(w.ID, data)
 }
 
 func doMapWork(id int, data DataMap, reduceNum int) (Intermediate, error) {
