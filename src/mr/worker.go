@@ -3,7 +3,9 @@ package mr
 import (
 	"errors"
 	"hash/fnv"
+	"io/ioutil"
 	"net/rpc"
+	"os"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -28,14 +30,14 @@ func Worker(mapf func(string, string) []KeyValue,
 	for {
 		work, err := callRquestWork()
 		if err != nil {
-			log.Errorf("[Worker] Fail to get work: %+v", err)
+			log.Errorf("[Worker] Fail to get work: %v", err)
 			continue
 		}
-		log.Infof("[Worker] Get work: %+v", work)
+		log.Infof("[Worker] Get work: %v", work)
 
 		if work != nil {
 			if err := doWork(work); err != nil {
-				log.Errorf("[Worker] Fail to do work: %+v", err)
+				log.Errorf("[Worker] Fail to do work: %v", err)
 			}
 		}
 
@@ -48,7 +50,7 @@ func doWork(w *Work) error {
 
 	var wr WorkResult
 	if err != nil {
-		log.Errorf("[doWork] Error result: %+v", err)
+		log.Errorf("[doWork] Error result: %v", err)
 		wr = ResultError
 	} else {
 		wr = ResultOk
@@ -56,7 +58,7 @@ func doWork(w *Work) error {
 
 	// Send result to coordinator.
 	if err := callSendWorkResult(w.Kind, w.ID, wr, intermediate); err != nil {
-		log.Errorf("[doWork] Fail to send result: %+v", err)
+		log.Errorf("[doWork] Fail to send result: %v", err)
 		return err
 	}
 
@@ -85,7 +87,30 @@ func startToDo(w *Work) (Intermediate, error) {
 
 func doMapWork(id int, data DataMap, reduceNum int) (Intermediate, error) {
 	// time.Sleep(time.Second)
+	_, err := readFileContent(data)
+	if err != nil {
+		log.Errorf("[doMapWork] Fail to read content: %v", err)
+	}
+
+	// kva := mapf(filename, string(content))
 	return nil, nil
+}
+
+func readFileContent(filename string) ([]byte, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		log.Errorf("[readFileContent] Cannot open %v", filename)
+		return nil, err
+	}
+
+	content, err := ioutil.ReadAll(file)
+	if err != nil {
+		log.Errorf("[readFileContent] Cannot read %v", filename)
+		return nil, err
+	}
+	file.Close()
+
+	return content, nil
 }
 
 func doReduceWork(id int, data DataReduce) error {

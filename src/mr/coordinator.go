@@ -133,7 +133,7 @@ func (c *Coordinator) SendWorkResult(args *SendWorkResultArgs, reply *SendWorkRe
 	if args.Kind == KindMap {
 		if newState == WorkCompleted {
 			if err := c.assignIntermediate(args.Intermediate); err != nil {
-				log.Errorf("[SendWorkResult] Fail to assign intermediate: %+v", err)
+				log.Errorf("[SendWorkResult] Fail to assign intermediate: %v", err)
 				return err
 			}
 		}
