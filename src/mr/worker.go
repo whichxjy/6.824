@@ -136,28 +136,18 @@ func generateIntermediate(
 			return nil, err
 		}
 
-		// Write json data to temp file.
-		tempFile, err := writeToTempFile(content)
-		if err != nil {
+		// Write json data to file.
+		filePath := fmt.Sprintf("mr-%v-%v.json", mapID, i)
+		if err := writeToPath(content, filePath); err != nil {
 			log.Errorf(
-				"[generateIntermediate] Cannot write to temp file: %v",
-				err,
-			)
-			return nil, err
-		}
-
-		// Rename temp file.
-		newFilePath := fmt.Sprintf("mr-%v-%v.json", mapID, i)
-		if err := os.Rename(tempFile.Name(), newFilePath); err != nil {
-			log.Errorf(
-				"[generateIntermediate] Fail to rename temp file: %v",
+				"[generateIntermediate] Cannot write to file: %v",
 				err,
 			)
 			return nil, err
 		}
 
 		// Add intermediate file path to intermediate map.
-		intermediate[i] = newFilePath
+		intermediate[i] = filePath
 	}
 
 	return intermediate, nil
@@ -214,7 +204,30 @@ func readFileContent(filename string) ([]byte, error) {
 	return content, nil
 }
 
-func writeToTempFile(content []byte) (f *os.File, err error) {
+func writeToPath(content []byte, filePath string) error {
+	// Write to temp file.
+	tempFile, err := writeToTempFile(content)
+	if err != nil {
+		log.Errorf(
+			"[writeToPath] Cannot write to temp file: %v",
+			err,
+		)
+		return err
+	}
+
+	// Rename temp file.
+	if err := os.Rename(tempFile.Name(), filePath); err != nil {
+		log.Errorf(
+			"[writeToPath] Fail to rename temp file: %v",
+			err,
+		)
+		return err
+	}
+
+	return nil
+}
+
+func writeToTempFile(content []byte) (*os.File, error) {
 	tempFile, err := ioutil.TempFile("", "temp-*.json")
 	if err != nil {
 		log.Errorf(
