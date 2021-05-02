@@ -4,7 +4,6 @@ import (
 	"errors"
 	"hash/fnv"
 	"net/rpc"
-	"strconv"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -68,7 +67,7 @@ func requestWork() (*Work, error) {
 	return reply.Work, nil
 }
 
-func doWork(w *Work) (*string, error) {
+func doWork(w *Work) ([]*string, error) {
 	if w.Kind == KindMap {
 		// Try to do map work.
 		data, ok := w.Data.(DataMap)
@@ -80,7 +79,7 @@ func doWork(w *Work) (*string, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &intermediate, nil
+		return intermediate, nil
 	}
 
 	// Try to do reduce work.
@@ -95,9 +94,10 @@ func doWork(w *Work) (*string, error) {
 	return nil, nil
 }
 
-func doMapWork(id int, data DataMap, reduceNum int) (string, error) {
+func doMapWork(id int, data DataMap, reduceNum int) ([]*string, error) {
 	// time.Sleep(time.Second)
-	return "Hello " + strconv.Itoa(reduceNum), nil
+	s := "hello"
+	return []*string{&s}, nil
 }
 
 func doReduceWork(id int, data DataReduce) error {
@@ -105,7 +105,7 @@ func doReduceWork(id int, data DataReduce) error {
 	return nil
 }
 
-func sendWorkResult(kind WorkKind, id int, wr WorkResult, intermediate *string) error {
+func sendWorkResult(kind WorkKind, id int, wr WorkResult, intermediate []*string) error {
 	args := SendWorkResultArgs{
 		Kind:         kind,
 		ID:           id,

@@ -43,7 +43,7 @@ type SendWorkResultArgs struct {
 	Kind         WorkKind
 	ID           int
 	WorkResult   WorkResult
-	Intermediate *string
+	Intermediate []*string
 }
 
 type SendWorkResultReply struct{}
