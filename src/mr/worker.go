@@ -38,7 +38,7 @@ func Worker(
 		log.Infof("[Worker] Get work: %v", work)
 
 		if work != nil {
-			if err := doWork(work); err != nil {
+			if err := doWork(work, mapf, reducef); err != nil {
 				log.Errorf("[Worker] Fail to do work: %v", err)
 			}
 		}
@@ -47,8 +47,12 @@ func Worker(
 	}
 }
 
-func doWork(w *Work) error {
-	intermediate, err := startToDo(w)
+func doWork(
+	w *Work,
+	mapf func(string, string) []KeyValue,
+	reducef func(string, []string) string,
+) error {
+	intermediate, err := startToDo(w, mapf, reducef)
 
 	var wr WorkResult
 	if err != nil {
@@ -67,7 +71,11 @@ func doWork(w *Work) error {
 	return nil
 }
 
-func startToDo(w *Work) (Intermediate, error) {
+func startToDo(
+	w *Work,
+	mapf func(string, string) []KeyValue,
+	reducef func(string, []string) string,
+) (Intermediate, error) {
 	if w.Kind == KindMap {
 		// Try to do map work.
 		data, ok := w.Data.(DataMap)
@@ -75,7 +83,7 @@ func startToDo(w *Work) (Intermediate, error) {
 			return nil, errors.New("invalid map data")
 		}
 
-		return doMapWork(w.ID, data, w.ReduceNum)
+		return doMapWork(mapf, w.ID, data, w.ReduceNum)
 	}
 
 	// Try to do reduce work.
@@ -84,10 +92,15 @@ func startToDo(w *Work) (Intermediate, error) {
 		return nil, errors.New("invalid reduce data")
 	}
 
-	return nil, doReduceWork(w.ID, data)
+	return nil, doReduceWork(reducef, w.ID, data)
 }
 
-func doMapWork(id int, data DataMap, reduceNum int) (Intermediate, error) {
+func doMapWork(
+	mapf func(string, string) []KeyValue,
+	id int,
+	data DataMap,
+	reduceNum int,
+) (Intermediate, error) {
 	// time.Sleep(time.Second)
 	_, err := readFileContent(data)
 	if err != nil {
@@ -115,7 +128,11 @@ func readFileContent(filename string) ([]byte, error) {
 	return content, nil
 }
 
-func doReduceWork(id int, data DataReduce) error {
+func doReduceWork(
+	reducef func(string, []string) string,
+	id int,
+	data DataReduce,
+) error {
 	// time.Sleep(time.Second)
 	return nil
 }
