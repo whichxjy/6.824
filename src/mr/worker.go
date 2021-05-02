@@ -33,32 +33,37 @@ func Worker(mapf func(string, string) []KeyValue,
 		}
 		log.Infof("[Worker] Get work: %+v", work)
 
-		if work == nil {
-			// No work to do.
-			time.Sleep(time.Second)
-			continue
+		if work != nil {
+			if err := doWork(work); err != nil {
+				log.Errorf("[Worker] Fail to do work: %+v", err)
+			}
 		}
 
-		// Do to work.
-		intermediate, err := doWork(work)
-
-		var wr WorkResult
-		if err != nil {
-			log.Errorf("[Worker] Fail to do work: %+v", err)
-			wr = ResultError
-		} else {
-			wr = ResultOk
-		}
-
-		// Send result to coordinator.
-		if err := callSendWorkResult(work.Kind, work.ID, wr, intermediate); err != nil {
-			log.Errorf("[Worker] Fail to send result: %+v", err)
-			continue
-		}
+		time.Sleep(time.Second)
 	}
 }
 
-func doWork(w *Work) ([]*string, error) {
+func doWork(w *Work) error {
+	intermediate, err := startToDo(w)
+
+	var wr WorkResult
+	if err != nil {
+		log.Errorf("[doWork] Error result: %+v", err)
+		wr = ResultError
+	} else {
+		wr = ResultOk
+	}
+
+	// Send result to coordinator.
+	if err := callSendWorkResult(w.Kind, w.ID, wr, intermediate); err != nil {
+		log.Errorf("[doWork] Fail to send result: %+v", err)
+		return err
+	}
+
+	return nil
+}
+
+func startToDo(w *Work) ([]*string, error) {
 	if w.Kind == KindMap {
 		// Try to do map work.
 		data, ok := w.Data.(DataMap)
@@ -70,6 +75,7 @@ func doWork(w *Work) ([]*string, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		return intermediate, nil
 	}
 
@@ -87,8 +93,8 @@ func doWork(w *Work) ([]*string, error) {
 
 func doMapWork(id int, data DataMap, reduceNum int) ([]*string, error) {
 	// time.Sleep(time.Second)
-	s := "hello"
-	return []*string{&s}, nil
+	s := make([]*string, reduceNum)
+	return s, nil
 }
 
 func doReduceWork(id int, data DataReduce) error {
