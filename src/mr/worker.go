@@ -1,7 +1,9 @@
 package mr
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"hash/fnv"
 	"io/ioutil"
 	"net/rpc"
@@ -13,8 +15,8 @@ import (
 
 // Map functions return a slice of KeyValue.
 type KeyValue struct {
-	Key   string
-	Value string
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
 type Bucket []KeyValue
@@ -95,6 +97,7 @@ func doMapWork(
 	data DataMap,
 	reduceNum int,
 ) (Intermediate, error) {
+	// Read map task file.
 	content, err := readFileContent(data)
 	if err != nil {
 		log.Errorf("[doMapWork] Fail to read content: %v", err)
@@ -108,15 +111,55 @@ func doMapWork(
 		buckets[idx] = append(buckets[idx], kv)
 	}
 
-	return generateIntermediate(id, reduceNum, buckets)
+	return generateIntermediate(id, buckets)
 }
 
 func generateIntermediate(
 	mapID int,
-	reduceNum int,
 	buckets []Bucket,
 ) (Intermediate, error) {
-	return nil, nil
+	intermediate := make(Intermediate)
+
+	for i, bucket := range buckets {
+		if bucket == nil {
+			continue
+		}
+
+		// Convert bucket to json data.
+		content, err := json.Marshal(bucket)
+		if err != nil {
+			log.Errorf(
+				"[generateIntermediate] Fail to generate json bytes: %v",
+				err,
+			)
+			return nil, err
+		}
+
+		// Write json data to temp file.
+		tempFile, err := writeToTempFile(content)
+		if err != nil {
+			log.Errorf(
+				"[generateIntermediate] Cannot write to temp file: %v",
+				err,
+			)
+			return nil, err
+		}
+
+		// Rename temp file.
+		newFilePath := fmt.Sprintf("mr-%v-%v.json", mapID, i)
+		if err := os.Rename(tempFile.Name(), newFilePath); err != nil {
+			log.Errorf(
+				"[generateIntermediate] Fail to rename temp file: %v",
+				err,
+			)
+			return nil, err
+		}
+
+		// Add intermediate file path to intermediate map.
+		intermediate[i] = newFilePath
+	}
+
+	return intermediate, nil
 }
 
 func doReduceWork(
@@ -151,6 +194,28 @@ func readFileContent(filename string) ([]byte, error) {
 	file.Close()
 
 	return content, nil
+}
+
+func writeToTempFile(content []byte) (f *os.File, err error) {
+	tempFile, err := ioutil.TempFile("", "temp-*.json")
+	if err != nil {
+		log.Errorf(
+			"[writeToTempFile] Fail to create temp file: %v",
+			err,
+		)
+		return nil, err
+	}
+	defer tempFile.Close()
+
+	if _, err := tempFile.Write(content); err != nil {
+		log.Errorf(
+			"[writeToTempFile] Cannot write content: %v",
+			err,
+		)
+		return nil, err
+	}
+
+	return tempFile, nil
 }
 
 func callRquestWork() (*Work, error) {
