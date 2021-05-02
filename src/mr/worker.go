@@ -17,13 +17,7 @@ type KeyValue struct {
 	Value string
 }
 
-// Use ihash(key) % ReduceNum to choose the reduce
-// task number for each KeyValue emitted by Map.
-func ihash(key string) int {
-	h := fnv.New32a()
-	h.Write([]byte(key))
-	return int(h.Sum32() & 0x7fffffff)
-}
+type Bucket []KeyValue
 
 func Worker(
 	mapf func(string, string) []KeyValue,
@@ -101,14 +95,45 @@ func doMapWork(
 	data DataMap,
 	reduceNum int,
 ) (Intermediate, error) {
-	// time.Sleep(time.Second)
-	_, err := readFileContent(data)
+	content, err := readFileContent(data)
 	if err != nil {
 		log.Errorf("[doMapWork] Fail to read content: %v", err)
 	}
 
-	// kva := mapf(filename, string(content))
+	kva := mapf(data, string(content))
+	buckets := make([]Bucket, reduceNum)
+
+	for _, kv := range kva {
+		idx := ihash(kv.Key) % reduceNum
+		buckets[idx] = append(buckets[idx], kv)
+	}
+
+	return generateIntermediate(id, reduceNum, buckets)
+}
+
+func generateIntermediate(
+	mapID int,
+	reduceNum int,
+	buckets []Bucket,
+) (Intermediate, error) {
 	return nil, nil
+}
+
+func doReduceWork(
+	reducef func(string, []string) string,
+	id int,
+	data DataReduce,
+) error {
+	// time.Sleep(time.Second)
+	return nil
+}
+
+// Use ihash(key) % ReduceNum to choose the reduce
+// task number for each KeyValue emitted by Map.
+func ihash(key string) int {
+	h := fnv.New32a()
+	h.Write([]byte(key))
+	return int(h.Sum32() & 0x7fffffff)
 }
 
 func readFileContent(filename string) ([]byte, error) {
@@ -126,15 +151,6 @@ func readFileContent(filename string) ([]byte, error) {
 	file.Close()
 
 	return content, nil
-}
-
-func doReduceWork(
-	reducef func(string, []string) string,
-	id int,
-	data DataReduce,
-) error {
-	// time.Sleep(time.Second)
-	return nil
 }
 
 func callRquestWork() (*Work, error) {
