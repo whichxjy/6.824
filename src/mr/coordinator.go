@@ -1,6 +1,7 @@
 package mr
 
 import (
+	"errors"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -82,6 +83,7 @@ func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply
 			Data:      DataMap(mw.data),
 			ReduceNum: len(c.reduceWorks),
 		}
+
 		return nil
 	}
 
@@ -106,6 +108,7 @@ func (c *Coordinator) RequestWork(args *RequestWorkArgs, reply *RequestWorkReply
 			Data:      DataReduce(rw.data),
 			ReduceNum: len(c.reduceWorks),
 		}
+
 		return nil
 	}
 
@@ -128,18 +131,17 @@ func (c *Coordinator) SendWorkResult(args *SendWorkResultArgs, reply *SendWorkRe
 	}
 
 	if args.Kind == KindMap {
-		c.mapWorks[args.ID].state = newState
-
 		if newState == WorkCompleted {
-
+			if err := c.assignIntermediate(args.Intermediate); err != nil {
+				log.Errorf("[SendWorkResult] Fail to assign intermediate: %+v", err)
+				return err
+			}
 		}
+
+		c.mapWorks[args.ID].state = newState
 	} else {
 		c.reduceWorks[args.ID].state = newState
 	}
-
-	// if args.Kind == KindMap  && {
-
-	// }
 
 	return nil
 }
@@ -170,6 +172,21 @@ func (c *Coordinator) findNextIdleReduceWork() *reduceWork {
 			return rw
 		}
 	}
+
+	return nil
+}
+
+func (c *Coordinator) assignIntermediate(intermediate []*string) error {
+	if len(intermediate) != len(c.reduceWorks) {
+		return errors.New("invalid intermediate")
+	}
+
+	for i, rdata := range intermediate {
+		if rdata != nil {
+			c.reduceWorks[i].data = append(c.reduceWorks[i].data, *rdata)
+		}
+	}
+
 	return nil
 }
 
@@ -209,5 +226,6 @@ func (c *Coordinator) areAllReduceWorksCompleted() bool {
 			return false
 		}
 	}
+
 	return true
 }

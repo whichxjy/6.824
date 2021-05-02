@@ -29,7 +29,7 @@ func Worker(mapf func(string, string) []KeyValue,
 		work, err := requestWork()
 		if err != nil {
 			log.Errorf("[Worker] Fail to get work: %+v", err)
-			return
+			continue
 		}
 		log.Infof("[Worker] Get work: %+v", work)
 
@@ -53,7 +53,7 @@ func Worker(mapf func(string, string) []KeyValue,
 		// Send result to coordinator.
 		if err := sendWorkResult(work.Kind, work.ID, wr, intermediate); err != nil {
 			log.Errorf("[Worker] Fail to send result: %+v", err)
-			return
+			continue
 		}
 	}
 }
@@ -123,7 +123,7 @@ func call(rpcname string, args interface{}, reply interface{}) error {
 	sockname := coordinatorSock()
 	c, err := rpc.DialHTTP("unix", sockname)
 	if err != nil {
-		log.Fatal("dialing:", err)
+		log.Fatal("[call] Fail to dail:", err)
 	}
 	defer c.Close()
 	return c.Call(rpcname, args, reply)
