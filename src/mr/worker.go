@@ -47,7 +47,7 @@ func runWorker(
 			log.Errorf("[Worker] Fail to get work: %v", err)
 			continue
 		}
-		log.Infof("[Worker] Get work: %v", work)
+		log.Infof("[Worker] Get work: %+v", work)
 
 		if work != nil {
 			if err := doWork(work, mapf, reducef); err != nil {
