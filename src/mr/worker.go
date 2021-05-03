@@ -200,16 +200,32 @@ func generateIntermediate(
 ) (Intermediate, error) {
 	intermediate := make(Intermediate)
 
+	okChan := make(chan struct{})
+	errChan := make(chan error)
+
 	for i, bucket := range buckets {
 		if bucket == nil {
 			continue
 		}
 
 		filePath := fmt.Sprintf("mr-%v-%v.json", mapID, i)
-		writeBucketToFile(&bucket, filePath)
-
-		// Add intermediate file path to intermediate map.
 		intermediate[i] = filePath
+
+		go func(bk *Bucket) {
+			if err := writeBucketToFile(bk, filePath); err != nil {
+				errChan <- err
+			}
+			okChan <- struct{}{}
+		}(&buckets[i])
+	}
+
+	for i := 0; i < len(intermediate); i++ {
+		select {
+		case <-okChan:
+			continue
+		case err := <-errChan:
+			return nil, err
+		}
 	}
 
 	return intermediate, nil
