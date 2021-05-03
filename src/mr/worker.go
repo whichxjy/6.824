@@ -53,7 +53,7 @@ func runWorker(
 		log.Infof("[runWorker] Get work: %+v", work)
 
 		if work != nil {
-			if err := doWork(work, mapf, reducef); err != nil {
+			if err := startToDo(work, mapf, reducef); err != nil {
 				log.Errorf("[runWorker] Fail to do work: %v", err)
 				time.Sleep(time.Second)
 			}
@@ -61,16 +61,16 @@ func runWorker(
 	}
 }
 
-func doWork(
+func startToDo(
 	w *Work,
 	mapf func(string, string) []KeyValue,
 	reducef func(string, []string) string,
 ) error {
-	intermediate, err := startToDo(w, mapf, reducef)
+	intermediate, err := doWork(w, mapf, reducef)
 
 	var wr WorkResult
 	if err != nil {
-		log.Errorf("[doWork] Error result: %v", err)
+		log.Errorf("[startToDo] Error result: %v", err)
 		wr = ResultError
 	} else {
 		wr = ResultOk
@@ -78,14 +78,14 @@ func doWork(
 
 	// Send result to coordinator.
 	if err := callSendWorkResult(w.Kind, w.ID, wr, intermediate); err != nil {
-		log.Errorf("[doWork] Fail to send result: %v", err)
+		log.Errorf("[startToDo] Fail to send result: %v", err)
 		return err
 	}
 
 	return nil
 }
 
-func startToDo(
+func doWork(
 	w *Work,
 	mapf func(string, string) []KeyValue,
 	reducef func(string, []string) string,
@@ -140,34 +140,28 @@ func doReduceWork(
 ) error {
 	var intermediate []KeyValue
 
+	bucketChan := make(chan *Bucket)
+	errChan := make(chan error)
+
 	for _, rdata := range data {
-		// Read reduce task file.
-		content, err := readFileContent(rdata)
-		if err != nil {
-			log.Errorf("[doReduceWork] Fail to read content: %v", err)
-			return err
-		}
-
-		// Convert the content to bucket.
-		var bucket Bucket
-		if err := json.Unmarshal(content, &bucket); err != nil {
-			log.Errorf("[doReduceWork] Fail to convert content: %v", err)
-			return err
-		}
-
-		intermediate = append(intermediate, bucket...)
+		go readToBucket(rdata, bucketChan, errChan)
 	}
 
-	sort.Sort(ByKey(intermediate))
+	for i := 0; i < len(data); i++ {
+		select {
+		case err := <-errChan:
+			return err
+		case bucket := <-bucketChan:
+			intermediate = append(intermediate, *bucket...)
+		}
+	}
+
 	result := reduceIntermediate(reducef, intermediate)
 
 	// Write result to file.
 	filePath := fmt.Sprintf("mr-out-%v", id)
 	if err := writeToPath(result, filePath); err != nil {
-		log.Errorf(
-			"[doReduceWork] Cannot write to file: %v",
-			err,
-		)
+		log.Errorf("[doReduceWork] Cannot write to file: %v", err)
 		return err
 	}
 
@@ -215,19 +209,13 @@ func writeBucketToFile(bucket *Bucket, filePath string) error {
 	// Convert bucket to json data.
 	content, err := json.Marshal(bucket)
 	if err != nil {
-		log.Errorf(
-			"[writeBucketToFile] Fail to generate json bytes: %v",
-			err,
-		)
+		log.Errorf("[writeBucketToFile] Fail to generate json bytes: %v", err)
 		return err
 	}
 
 	// Write json data to file.
 	if err := writeToPath(content, filePath); err != nil {
-		log.Errorf(
-			"[writeBucketToFile] Cannot write to file: %v",
-			err,
-		)
+		log.Errorf("[writeBucketToFile] Cannot write to file: %v", err)
 		return err
 	}
 
@@ -238,6 +226,8 @@ func reduceIntermediate(
 	reducef func(string, []string) string,
 	intermediate []KeyValue,
 ) []byte {
+	sort.Sort(ByKey(intermediate))
+
 	var buf bytes.Buffer
 	i := 0
 
@@ -262,6 +252,27 @@ func reduceIntermediate(
 	return buf.Bytes()
 }
 
+func readToBucket(
+	filePath string,
+	bucketChan chan *Bucket,
+	errChan chan error,
+) {
+	content, err := readFileContent(filePath)
+	if err != nil {
+		log.Errorf("[readToBucket] Fail to read content: %v", err)
+		errChan <- err
+	}
+
+	// Convert the content to bucket.
+	var bucket Bucket
+	if err := json.Unmarshal(content, &bucket); err != nil {
+		log.Errorf("[readToBucket] Fail to convert content: %v", err)
+		errChan <- err
+	}
+
+	bucketChan <- &bucket
+}
+
 // Use ihash(key) % ReduceNum to choose the reduce
 // task number for each KeyValue emitted by Map.
 func ihash(key string) int {
@@ -270,16 +281,16 @@ func ihash(key string) int {
 	return int(h.Sum32() & 0x7fffffff)
 }
 
-func readFileContent(filename string) ([]byte, error) {
-	file, err := os.Open(filename)
+func readFileContent(filePath string) ([]byte, error) {
+	file, err := os.Open(filePath)
 	if err != nil {
-		log.Errorf("[readFileContent] Cannot open %v", filename)
+		log.Errorf("[readFileContent] Cannot open %v", filePath)
 		return nil, err
 	}
 
 	content, err := ioutil.ReadAll(file)
 	if err != nil {
-		log.Errorf("[readFileContent] Cannot read %v", filename)
+		log.Errorf("[readFileContent] Cannot read %v", filePath)
 		return nil, err
 	}
 	file.Close()
@@ -291,19 +302,13 @@ func writeToPath(content []byte, filePath string) error {
 	// Write to temp file.
 	tempFile, err := writeToTempFile(content)
 	if err != nil {
-		log.Errorf(
-			"[writeToPath] Cannot write to temp file: %v",
-			err,
-		)
+		log.Errorf("[writeToPath] Cannot write to temp file: %v", err)
 		return err
 	}
 
 	// Rename temp file.
 	if err := os.Rename(tempFile.Name(), filePath); err != nil {
-		log.Errorf(
-			"[writeToPath] Fail to rename temp file: %v",
-			err,
-		)
+		log.Errorf("[writeToPath] Fail to rename temp file: %v", err)
 		return err
 	}
 
@@ -313,19 +318,13 @@ func writeToPath(content []byte, filePath string) error {
 func writeToTempFile(content []byte) (*os.File, error) {
 	tempFile, err := ioutil.TempFile("", "temp-*.json")
 	if err != nil {
-		log.Errorf(
-			"[writeToTempFile] Fail to create temp file: %v",
-			err,
-		)
+		log.Errorf("[writeToTempFile] Fail to create temp file: %v", err)
 		return nil, err
 	}
 	defer tempFile.Close()
 
 	if _, err := tempFile.Write(content); err != nil {
-		log.Errorf(
-			"[writeToTempFile] Cannot write content: %v",
-			err,
-		)
+		log.Errorf("[writeToTempFile] Cannot write content: %v", err)
 		return nil, err
 	}
 
