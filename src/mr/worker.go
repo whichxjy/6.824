@@ -132,44 +132,6 @@ func doMapWork(
 	return generateIntermediate(id, buckets)
 }
 
-func generateIntermediate(
-	mapID int,
-	buckets []Bucket,
-) (Intermediate, error) {
-	intermediate := make(Intermediate)
-
-	for i, bucket := range buckets {
-		if bucket == nil {
-			continue
-		}
-
-		// Convert bucket to json data.
-		content, err := json.Marshal(bucket)
-		if err != nil {
-			log.Errorf(
-				"[generateIntermediate] Fail to generate json bytes: %v",
-				err,
-			)
-			return nil, err
-		}
-
-		// Write json data to file.
-		filePath := fmt.Sprintf("mr-%v-%v.json", mapID, i)
-		if err := writeToPath(content, filePath); err != nil {
-			log.Errorf(
-				"[generateIntermediate] Cannot write to file: %v",
-				err,
-			)
-			return nil, err
-		}
-
-		// Add intermediate file path to intermediate map.
-		intermediate[i] = filePath
-	}
-
-	return intermediate, nil
-}
-
 func doReduceWork(
 	reducef func(string, []string) string,
 	id int,
@@ -224,6 +186,50 @@ func doReduceWork(
 	if err := writeToPath([]byte(result), filePath); err != nil {
 		log.Errorf(
 			"[doReduceWork] Cannot write to file: %v",
+			err,
+		)
+		return err
+	}
+
+	return nil
+}
+
+func generateIntermediate(
+	mapID int,
+	buckets []Bucket,
+) (Intermediate, error) {
+	intermediate := make(Intermediate)
+
+	for i, bucket := range buckets {
+		if bucket == nil {
+			continue
+		}
+
+		filePath := fmt.Sprintf("mr-%v-%v.json", mapID, i)
+		writeBucketToFile(&bucket, filePath)
+
+		// Add intermediate file path to intermediate map.
+		intermediate[i] = filePath
+	}
+
+	return intermediate, nil
+}
+
+func writeBucketToFile(bucket *Bucket, filePath string) error {
+	// Convert bucket to json data.
+	content, err := json.Marshal(bucket)
+	if err != nil {
+		log.Errorf(
+			"[writeBucketToFile] Fail to generate json bytes: %v",
+			err,
+		)
+		return err
+	}
+
+	// Write json data to file.
+	if err := writeToPath(content, filePath); err != nil {
+		log.Errorf(
+			"[writeBucketToFile] Cannot write to file: %v",
 			err,
 		)
 		return err
