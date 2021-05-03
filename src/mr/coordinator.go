@@ -28,7 +28,7 @@ type mapWork struct {
 type reduceWork struct {
 	id    int
 	state workState
-	data  DataReduce
+	data  map[string]struct{}
 }
 
 type Coordinator struct {
@@ -61,7 +61,7 @@ func (c *Coordinator) initStates(files []string, ReduceNum int) {
 		c.reduceWorks[i] = &reduceWork{
 			id:    i,
 			state: WorkIdle,
-			data:  nil,
+			data:  make(map[string]struct{}),
 		}
 	}
 }
@@ -104,12 +104,18 @@ func (c *Coordinator) RequestWork(
 		// Mark this map work as in-progress.
 		rw.state = WorkInProgress
 
+		// Make reduce data.
+		var rd DataReduce
+		for d := range rw.data {
+			rd = append(rd, d)
+		}
+
 		// Push this reduce work to worker.
 		log.Infof("[RequestWork] Assign reduce work %v", rw.id)
 		reply.Work = &Work{
 			Kind:      KindReduce,
 			ID:        rw.id,
-			Data:      DataReduce(rw.data),
+			Data:      rd,
 			ReduceNum: len(c.reduceWorks),
 		}
 
@@ -139,6 +145,7 @@ func (c *Coordinator) SendWorkResult(
 
 	if args.Kind == KindMap {
 		if newState == WorkCompleted {
+			// When the map work is done, assign intermediate for reduce task.
 			if err := c.assignIntermediate(args.Intermediate); err != nil {
 				log.Errorf(
 					"[SendWorkResult] Fail to assign intermediate: %v",
@@ -194,7 +201,8 @@ func (c *Coordinator) assignIntermediate(intermediate Intermediate) error {
 	}
 
 	for i, rdata := range intermediate {
-		c.reduceWorks[i].data = append(c.reduceWorks[i].data, rdata)
+		// Insert to reduce task data.
+		c.reduceWorks[i].data[rdata] = struct{}{}
 	}
 
 	return nil
