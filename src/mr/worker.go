@@ -33,6 +33,14 @@ func Worker(
 	mapf func(string, string) []KeyValue,
 	reducef func(string, []string) string,
 ) {
+	setLogLevel()
+	runWorker(mapf, reducef)
+}
+
+func runWorker(
+	mapf func(string, string) []KeyValue,
+	reducef func(string, []string) string,
+) {
 	for {
 		work, err := callRquestWork()
 		if err != nil {

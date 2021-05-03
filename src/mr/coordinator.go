@@ -39,6 +39,7 @@ type Coordinator struct {
 
 // ReduceNum is the number of reduce tasks to use.
 func MakeCoordinator(files []string, ReduceNum int) *Coordinator {
+	setLogLevel()
 	var c Coordinator
 	c.initStates(files, ReduceNum)
 	c.server()
