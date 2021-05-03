@@ -209,8 +209,8 @@ func (c *Coordinator) setupReduceWork(rw *reduceWork) *Work {
 }
 
 func (c *Coordinator) setMapWorkToIdle(mapID int) {
-	c.rwm.RLock()
-	defer c.rwm.RUnlock()
+	c.rwm.Lock()
+	defer c.rwm.Unlock()
 
 	if c.mapWorks[mapID].state == WorkInProgress {
 		c.mapWorks[mapID].state = WorkIdle
@@ -219,8 +219,8 @@ func (c *Coordinator) setMapWorkToIdle(mapID int) {
 }
 
 func (c *Coordinator) setReduceWorkToIdle(reduceID int) {
-	c.rwm.RLock()
-	defer c.rwm.RUnlock()
+	c.rwm.Lock()
+	defer c.rwm.Unlock()
 
 	if c.reduceWorks[reduceID].state == WorkInProgress {
 		c.reduceWorks[reduceID].state = WorkIdle
