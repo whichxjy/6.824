@@ -1,6 +1,7 @@
 package mr
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -158,32 +159,11 @@ func doReduceWork(
 	}
 
 	sort.Sort(ByKey(intermediate))
-
-	var result string
-	i := 0
-
-	for i < len(intermediate) {
-		j := i + 1
-		for j < len(intermediate) && intermediate[j].Key == intermediate[i].Key {
-			j++
-		}
-
-		values := []string{}
-		for k := i; k < j; k++ {
-			values = append(values, intermediate[k].Value)
-		}
-
-		output := reducef(intermediate[i].Key, values)
-
-		line := fmt.Sprintf("%v %v\n", intermediate[i].Key, output)
-		result += line
-
-		i = j
-	}
+	result := reduceIntermediate(reducef, intermediate)
 
 	// Write result to file.
 	filePath := fmt.Sprintf("mr-out-%v", id)
-	if err := writeToPath([]byte(result), filePath); err != nil {
+	if err := writeToPath(result, filePath); err != nil {
 		log.Errorf(
 			"[doReduceWork] Cannot write to file: %v",
 			err,
@@ -252,6 +232,34 @@ func writeBucketToFile(bucket *Bucket, filePath string) error {
 	}
 
 	return nil
+}
+
+func reduceIntermediate(
+	reducef func(string, []string) string,
+	intermediate []KeyValue,
+) []byte {
+	var buf bytes.Buffer
+	i := 0
+
+	for i < len(intermediate) {
+		j := i + 1
+		for j < len(intermediate) && intermediate[j].Key == intermediate[i].Key {
+			j++
+		}
+
+		values := []string{}
+		for k := i; k < j; k++ {
+			values = append(values, intermediate[k].Value)
+		}
+
+		output := reducef(intermediate[i].Key, values)
+		line := fmt.Sprintf("%v %v\n", intermediate[i].Key, output)
+		buf.WriteString(line)
+
+		i = j
+	}
+
+	return buf.Bytes()
 }
 
 // Use ihash(key) % ReduceNum to choose the reduce
