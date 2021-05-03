@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/rpc"
 	"os"
+	"sort"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -20,6 +21,13 @@ type KeyValue struct {
 }
 
 type Bucket []KeyValue
+
+// for sorting by key.
+type ByKey []KeyValue
+
+func (a ByKey) Len() int           { return len(a) }
+func (a ByKey) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByKey) Less(i, j int) bool { return a[i].Key < a[j].Key }
 
 func Worker(
 	mapf func(string, string) []KeyValue,
@@ -158,6 +166,8 @@ func doReduceWork(
 	id int,
 	data DataReduce,
 ) error {
+	var intermediate []KeyValue
+
 	for _, rdata := range data {
 		// Read reduce task file.
 		content, err := readFileContent(rdata)
@@ -173,7 +183,41 @@ func doReduceWork(
 			return err
 		}
 
-		log.Info(bucket)
+		intermediate = append(intermediate, bucket...)
+	}
+
+	sort.Sort(ByKey(intermediate))
+
+	var result string
+	i := 0
+
+	for i < len(intermediate) {
+		j := i + 1
+		for j < len(intermediate) && intermediate[j].Key == intermediate[i].Key {
+			j++
+		}
+
+		values := []string{}
+		for k := i; k < j; k++ {
+			values = append(values, intermediate[k].Value)
+		}
+
+		output := reducef(intermediate[i].Key, values)
+
+		line := fmt.Sprintf("%v %v\n", intermediate[i].Key, output)
+		result += line
+
+		i = j
+	}
+
+	// Write result to file.
+	filePath := fmt.Sprintf("mr-out-%v", id)
+	if err := writeToPath([]byte(result), filePath); err != nil {
+		log.Errorf(
+			"[doReduceWork] Cannot write to file: %v",
+			err,
+		)
+		return err
 	}
 
 	return nil
