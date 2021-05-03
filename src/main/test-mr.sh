@@ -71,9 +71,6 @@ timeout -k 2s 180s "$WORKER" "$WC" &
 # wait for the coordinator to exit.
 wait $pid
 
-# TODO: Remove this line
-exit
-
 # since workers are required to exit when a job is completely finished,
 # and not before, that means the job has finished.
 sort mr-out* | grep . > mr-wc-all
@@ -88,6 +85,9 @@ fi
 
 # wait for remaining workers and coordinator to exit.
 wait
+
+# TODO: Remove this line
+exit
 
 #########################################################
 # now indexer
