@@ -7,6 +7,7 @@ import (
 	"net/rpc"
 	"os"
 	"sync"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -88,6 +89,11 @@ func (c *Coordinator) RequestWork(
 			ReduceNum: len(c.reduceWorks),
 		}
 
+		time.AfterFunc(10*time.Second, func() {
+			// Give up this task.
+			c.setMapWorkToIdle(mw.id)
+		})
+
 		return nil
 	}
 
@@ -118,6 +124,11 @@ func (c *Coordinator) RequestWork(
 			Data:      rd,
 			ReduceNum: len(c.reduceWorks),
 		}
+
+		time.AfterFunc(10*time.Second, func() {
+			// Give up this task.
+			c.setReduceWorkToIdle(rw.id)
+		})
 
 		return nil
 	}
@@ -191,6 +202,26 @@ func (c *Coordinator) findNextIdleReduceWork() *reduceWork {
 	}
 
 	return nil
+}
+
+func (c *Coordinator) setMapWorkToIdle(mapID int) {
+	c.rwm.RLock()
+	defer c.rwm.RUnlock()
+
+	if c.mapWorks[mapID].state == WorkInProgress {
+		c.mapWorks[mapID].state = WorkIdle
+		log.Infof("[setMapWorkToIdle] Set map task %v to idle", mapID)
+	}
+}
+
+func (c *Coordinator) setReduceWorkToIdle(reduceID int) {
+	c.rwm.RLock()
+	defer c.rwm.RUnlock()
+
+	if c.reduceWorks[reduceID].state == WorkInProgress {
+		c.reduceWorks[reduceID].state = WorkIdle
+		log.Infof("[setReduceWorkToIdle] Set reduce task %v to idle", reduceID)
+	}
 }
 
 func (c *Coordinator) assignIntermediate(intermediate Intermediate) error {

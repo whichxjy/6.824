@@ -44,16 +44,16 @@ func runWorker(
 	for {
 		work, err := callRquestWork()
 		if err != nil {
-			log.Errorf("[Worker] Fail to get work: %v", err)
+			log.Errorf("[runWorker] Fail to get work: %v", err)
 			time.Sleep(time.Second)
 			continue
 		}
 
-		log.Infof("[Worker] Get work: %+v", work)
+		log.Infof("[runWorker] Get work: %+v", work)
 
 		if work != nil {
 			if err := doWork(work, mapf, reducef); err != nil {
-				log.Errorf("[Worker] Fail to do work: %v", err)
+				log.Errorf("[runWorker] Fail to do work: %v", err)
 				time.Sleep(time.Second)
 			}
 		}
