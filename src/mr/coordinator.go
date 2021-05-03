@@ -68,7 +68,7 @@ func (c *Coordinator) initStates(files []string, ReduceNum int) {
 }
 
 func (c *Coordinator) RequestWork(
-	args *RequestWorkArgs,
+	_ *RequestWorkArgs,
 	reply *RequestWorkReply,
 ) error {
 	c.rwm.Lock()
@@ -77,64 +77,24 @@ func (c *Coordinator) RequestWork(
 	// Find a map work to do.
 	mw, areAllMapWorksCompleted := c.findNextIdleMapWork()
 	if mw != nil {
-		// Mark this map work as in-progress.
-		mw.state = WorkInProgress
-
-		// Push this map work to worker.
-		log.Infof("[RequestWork] Assign map work %v", mw.id)
-		reply.Work = &Work{
-			Kind:      KindMap,
-			ID:        mw.id,
-			Data:      DataMap(mw.data),
-			ReduceNum: len(c.reduceWorks),
-		}
-
-		time.AfterFunc(10*time.Second, func() {
-			// Give up this task.
-			c.setMapWorkToIdle(mw.id)
-		})
-
+		reply.Work = c.setupMapWork(mw)
 		return nil
 	}
 
+	// No work to do until all map works are completed.
 	if !areAllMapWorksCompleted {
-		// No work to do until all map works are completed.
 		log.Infof("[RequestWork] No work to assign")
-		reply.Work = nil
 		return nil
 	}
 
 	// Find a reduce work to do.
 	rw := c.findNextIdleReduceWork()
 	if rw != nil {
-		// Mark this map work as in-progress.
-		rw.state = WorkInProgress
-
-		// Make reduce data.
-		var rd DataReduce
-		for d := range rw.data {
-			rd = append(rd, d)
-		}
-
-		// Push this reduce work to worker.
-		log.Infof("[RequestWork] Assign reduce work %v", rw.id)
-		reply.Work = &Work{
-			Kind:      KindReduce,
-			ID:        rw.id,
-			Data:      rd,
-			ReduceNum: len(c.reduceWorks),
-		}
-
-		time.AfterFunc(10*time.Second, func() {
-			// Give up this task.
-			c.setReduceWorkToIdle(rw.id)
-		})
-
+		reply.Work = c.setupReduceWork(rw)
 		return nil
 	}
 
 	// No map work or reduce work to do.
-	reply.Work = nil
 	return nil
 }
 
@@ -204,6 +164,50 @@ func (c *Coordinator) findNextIdleReduceWork() *reduceWork {
 	return nil
 }
 
+func (c *Coordinator) setupMapWork(mw *mapWork) *Work {
+	log.Infof("[setupMapWork] Assign map work %v", mw.id)
+
+	// Mark this map work as in-progress.
+	mw.state = WorkInProgress
+
+	time.AfterFunc(10*time.Second, func() {
+		// Give up this task.
+		c.setMapWorkToIdle(mw.id)
+	})
+
+	return &Work{
+		Kind:      KindMap,
+		ID:        mw.id,
+		Data:      DataMap(mw.data),
+		ReduceNum: len(c.reduceWorks),
+	}
+}
+
+func (c *Coordinator) setupReduceWork(rw *reduceWork) *Work {
+	log.Infof("[setupReduceWork] Assign reduce work %v", rw.id)
+
+	// Mark this reduce work as in-progress.
+	rw.state = WorkInProgress
+
+	// Make reduce data.
+	var rd DataReduce
+	for d := range rw.data {
+		rd = append(rd, d)
+	}
+
+	time.AfterFunc(10*time.Second, func() {
+		// Give up this task.
+		c.setReduceWorkToIdle(rw.id)
+	})
+
+	return &Work{
+		Kind:      KindReduce,
+		ID:        rw.id,
+		Data:      rd,
+		ReduceNum: len(c.reduceWorks),
+	}
+}
+
 func (c *Coordinator) setMapWorkToIdle(mapID int) {
 	c.rwm.RLock()
 	defer c.rwm.RUnlock()
@@ -255,8 +259,6 @@ func (c *Coordinator) server() {
 	go http.Serve(l, nil)
 }
 
-// main/mrcoordinator.go calls Done() periodically to find out
-// if the entire job has finished.
 func (c *Coordinator) Done() bool {
 	c.rwm.RLock()
 	defer c.rwm.RUnlock()

@@ -42,6 +42,7 @@ func Map(filename string, contents string) []mr.KeyValue {
 	kva = append(kva, mr.KeyValue{Key: "b", Value: strconv.Itoa(len(filename))})
 	kva = append(kva, mr.KeyValue{Key: "c", Value: strconv.Itoa(len(contents))})
 	kva = append(kva, mr.KeyValue{Key: "d", Value: "xyzzy"})
+
 	return kva
 }
 
