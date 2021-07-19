@@ -19,7 +19,7 @@ type ShardKV struct {
 	me           int
 	rf           *raft.Raft
 	applyCh      chan raft.ApplyMsg
-	make_end     func(string) *labrpc.ClientEnd
+	makeEnd      func(string) *labrpc.ClientEnd
 	gid          int
 	ctrlers      []*labrpc.ClientEnd
 	maxraftstate int // snapshot if log grows this big
@@ -64,12 +64,12 @@ func (kv *ShardKV) Kill() {
 // pass ctrlers[] to shardctrler.MakeClerk() so you can send
 // RPCs to the shardctrler.
 //
-// make_end(servername) turns a server name from a
+// makeEnd(servername) turns a server name from a
 // Config.Groups[gid][i] into a labrpc.ClientEnd on which you can
 // send RPCs. You'll need this to send RPCs to other groups.
 //
 // look at client.go for examples of how to use ctrlers[]
-// and make_end() to send RPCs to the group owning a specific shard.
+// and makeEnd() to send RPCs to the group owning a specific shard.
 //
 // StartServer() must return quickly, so it should start goroutines
 // for any long-running work.
@@ -81,7 +81,7 @@ func StartServer(
 	maxraftstate int,
 	gid int,
 	ctrlers []*labrpc.ClientEnd,
-	make_end func(string) *labrpc.ClientEnd,
+	makeEnd func(string) *labrpc.ClientEnd,
 ) *ShardKV {
 	// call labgob.Register on structures you want
 	// Go's RPC library to marshall/unmarshall.
@@ -90,7 +90,7 @@ func StartServer(
 	kv := new(ShardKV)
 	kv.me = me
 	kv.maxraftstate = maxraftstate
-	kv.make_end = make_end
+	kv.makeEnd = makeEnd
 	kv.gid = gid
 	kv.ctrlers = ctrlers
 

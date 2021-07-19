@@ -36,7 +36,7 @@ func makeSeed() int64 {
 }
 
 // Randomize server handles
-func random_handles(kvh []*labrpc.ClientEnd) []*labrpc.ClientEnd {
+func randomHandles(kvh []*labrpc.ClientEnd) []*labrpc.ClientEnd {
 	sa := make([]*labrpc.ClientEnd, len(kvh))
 	copy(sa, kvh)
 	for i := range sa {
@@ -58,7 +58,7 @@ type config struct {
 	mu    sync.Mutex
 	t     *testing.T
 	net   *labrpc.Network
-	start time.Time // time at which make_config() was called
+	start time.Time // time at which makeConfig() was called
 
 	nctrlers      int
 	ctrlerservers []*shardctrler.ShardCtrler
@@ -340,15 +340,15 @@ func (cfg *config) leavem(gis []int) {
 	cfg.mck.Leave(gids)
 }
 
-var ncpu_once sync.Once
+var ncpuOnce sync.Once
 
-func make_config(
+func makeConfig(
 	t *testing.T,
 	n int,
 	unreliable bool,
 	maxraftstate int,
 ) *config {
-	ncpu_once.Do(func() {
+	ncpuOnce.Do(func() {
 		if runtime.NumCPU() < 2 {
 			fmt.Printf(
 				"warning: only one CPU, which may conceal locking bugs\n",

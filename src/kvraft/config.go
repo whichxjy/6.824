@@ -35,7 +35,7 @@ func makeSeed() int64 {
 }
 
 // Randomize server handles
-func random_handles(kvh []*labrpc.ClientEnd) []*labrpc.ClientEnd {
+func randomHandles(kvh []*labrpc.ClientEnd) []*labrpc.ClientEnd {
 	sa := make([]*labrpc.ClientEnd, len(kvh))
 	copy(sa, kvh)
 	for i := range sa {
@@ -56,9 +56,9 @@ type config struct {
 	clerks       map[*Clerk][]string
 	nextClientId int
 	maxraftstate int
-	start        time.Time // time at which make_config() was called
+	start        time.Time // time at which makeConfig() was called
 	// begin()/end() statistics
-	t0    time.Time // time at which test_test.go called cfg.begin()
+	t0    time.Time // time at which kvraft_test.go called cfg.begin()
 	rpcs0 int       // rpcTotal() at start of test
 	ops   int32     // number of clerk get/put/append method calls
 }
@@ -205,7 +205,7 @@ func (cfg *config) makeClient(to []int) *Clerk {
 		cfg.net.Connect(endnames[j], j)
 	}
 
-	ck := MakeClerk(random_handles(ends))
+	ck := MakeClerk(randomHandles(ends))
 	cfg.clerks[ck] = endnames
 	cfg.nextClientId++
 	cfg.ConnectClientUnlocked(ck, to)
@@ -331,8 +331,8 @@ func (cfg *config) Leader() (bool, int) {
 	defer cfg.mu.Unlock()
 
 	for i := 0; i < cfg.n; i++ {
-		_, is_leader := cfg.kvservers[i].rf.GetState()
-		if is_leader {
+		_, isLeader := cfg.kvservers[i].rf.GetState()
+		if isLeader {
 			return true, i
 		}
 	}
@@ -340,7 +340,7 @@ func (cfg *config) Leader() (bool, int) {
 }
 
 // Partition servers into 2 groups and put current leader in minority
-func (cfg *config) make_partition() ([]int, []int) {
+func (cfg *config) makePartition() ([]int, []int) {
 	_, l := cfg.Leader()
 	p1 := make([]int, cfg.n/2+1)
 	p2 := make([]int, cfg.n/2)
@@ -359,15 +359,15 @@ func (cfg *config) make_partition() ([]int, []int) {
 	return p1, p2
 }
 
-var ncpu_once sync.Once
+var ncpuOnce sync.Once
 
-func make_config(
+func makeConfig(
 	t *testing.T,
 	n int,
 	unreliable bool,
 	maxraftstate int,
 ) *config {
-	ncpu_once.Do(func() {
+	ncpuOnce.Do(func() {
 		if runtime.NumCPU() < 2 {
 			fmt.Printf(
 				"warning: only one CPU, which may conceal locking bugs\n",
